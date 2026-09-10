@@ -4,7 +4,7 @@
 
 import { esActivo } from "./estado.js";
 import { calcularCliente } from "./logica.js";
-import { hoyDias, isoADias, claveMes } from "./fechas.js";
+import { hoyDias, isoADias, diasAIso, claveMes } from "./fechas.js";
 
 export function mapaNombres(doc) {
   const m = {};
@@ -96,3 +96,57 @@ export function cobrosPorMes(doc) {
 }
 
 const sum = (arr) => arr.reduce((s, c) => s + (Number(c.importe) || 0), 0);
+
+// ── Panel de Inicio ──────────────────────────────
+export function panelInicio(doc, hoy = hoyDias()) {
+  const clientes = doc.clientes || [];
+  const cobros = doc.cobros || [];
+
+  const activos = clientes.filter(esActivo);
+  const nActivo = clientes.filter((c) => c.estado === "Activo").length;
+  const nRenovado = clientes.filter((c) => c.estado === "Renovado").length;
+
+  // Límites del mes natural actual
+  const hoyIso = diasAIso(hoy);
+  const mesActual = hoyIso.slice(0, 7); // "AAAA-MM"
+  const [y, m] = mesActual.split("-").map(Number);
+  const primerDia = isoADias(`${mesActual}-01`);
+  const primerDiaSigMes = isoADias(
+    m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`
+  );
+  const ultimoDia = primerDiaSigMes - 1;
+
+  const cobrosMes = cobros.filter((c) => claveMes(c.fechaPago) === mesActual);
+  const ingresosMes = sum(cobrosMes.filter((c) => c.estado === "Cobrado"));
+  const ingresosMesPendiente = sum(cobrosMes.filter((c) => c.estado !== "Cobrado"));
+
+  // Renovaciones previstas del mes = clientes activos cuyo ciclo termina este mes
+  const renovacionesMes = activos
+    .map((c) => ({ cliente: c, d: calcularCliente(c, hoy) }))
+    .filter(({ d }) => d.finDias != null && d.finDias >= primerDia && d.finDias <= ultimoDia)
+    .sort((a, b) => a.d.finDias - b.d.finDias);
+
+  const pagosPendientes = cobros
+    .filter((c) => c.estado !== "Cobrado")
+    .map((c) => ({ ...c, clienteNombre: mapaNombres(doc)[c.clienteId] || "—" }))
+    .sort((a, b) => String(a.fechaPago).localeCompare(String(b.fechaPago)));
+  const totalPendiente = sum(pagosPendientes);
+
+  const { pendientesRenov, pendientesOptim } = llamadas(doc, hoy);
+  const carrerasProximas = carreras(doc, hoy).proximas.filter((f) => f.diasRestantes <= 30);
+
+  return {
+    activos: activos.length,
+    nActivo,
+    nRenovado,
+    mesActual,
+    ingresosMes,
+    ingresosMesPendiente,
+    renovacionesMes,
+    pagosPendientes,
+    totalPendiente,
+    pendientesRenov,
+    pendientesOptim,
+    carrerasProximas,
+  };
+}

@@ -3,12 +3,12 @@ import { useState } from "react";
 import { useStore } from "./lib/store.jsx";
 import { esActivo } from "./lib/estado.js";
 import SyncBadge from "./components/SyncBadge.jsx";
+import InicioTab from "./tabs/InicioTab.jsx";
 import ClientesTab from "./tabs/ClientesTab.jsx";
 import LlamadasTab from "./tabs/LlamadasTab.jsx";
 import CarrerasTab from "./tabs/CarrerasTab.jsx";
 import CobrosTab from "./tabs/CobrosTab.jsx";
 import DatosTab from "./tabs/DatosTab.jsx";
-import PlaceholderTab from "./tabs/PlaceholderTab.jsx";
 import FichaCliente from "./fichas/FichaCliente.jsx";
 
 const TABS = [
@@ -67,6 +67,7 @@ export default function App() {
       </header>
 
       <main className="contenedor" style={{ paddingTop: 20, paddingBottom: 60 }}>
+        {tab === "inicio" && <InicioTab doc={data} irATab={setTab} abrirFicha={abrirFicha} />}
         {tab === "clientes" && <ClientesTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
         {tab === "llamadas" && <LlamadasTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
         {tab === "carreras" && <CarrerasTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
@@ -74,7 +75,6 @@ export default function App() {
         {tab === "datos" && (
           <DatosTab doc={data} exportar={exportar} importar={importar} sincronizarAhora={sincronizarAhora} />
         )}
-        {tab === "inicio" && <PlaceholderTab nombre="Inicio (panel)" fase={5} />}
       </main>
 
       {fichaCliente && (

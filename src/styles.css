@@ -397,6 +397,51 @@ button.mini:hover {
   font-size: 18px;
 }
 
+/* ── Panel de Inicio ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.kpi {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.kpi-valor {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--azul-osc);
+  line-height: 1.1;
+}
+.kpi-etiqueta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto);
+  margin-top: 4px;
+}
+.enlace-fila {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.enlace-fila:hover {
+  background: #eef2f5;
+}
+.alerta-num {
+  color: #ca8a04;
+  font-weight: 700;
+}
+@media (max-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Bloques de las pestañas globales ── */
 .bloque {
   background: #fff;
