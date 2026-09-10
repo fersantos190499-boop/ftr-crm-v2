@@ -1,18 +1,46 @@
 // ─── PESTAÑA CLIENTES ─────────────────────────────
 import { useMemo, useState } from "react";
-import { EtiquetaEstado, Semaforo, Boton } from "../components/ui.jsx";
-import { esActivo } from "../lib/estado.js";
+import { EtiquetaEstado, Semaforo, Progreso, Boton } from "../components/ui.jsx";
+import { esActivo, COLOR_ESTADO, COLOR_SEMAFORO } from "../lib/estado.js";
 import { calcularCliente } from "../lib/logica.js";
 import NuevoClienteForm from "../forms/NuevoClienteForm.jsx";
 
 const FILTROS = [
-  { id: "activos", label: "Activos", test: (c) => esActivo(c) },
-  { id: "Activo", label: "Activo", test: (c) => c.estado === "Activo" },
-  { id: "Renovado", label: "Renovado", test: (c) => c.estado === "Renovado" },
-  { id: "Finalizado", label: "Finalizado", test: (c) => c.estado === "Finalizado" },
-  { id: "Baja", label: "Baja", test: (c) => c.estado === "Baja" },
-  { id: "todos", label: "Todos", test: () => true },
+  { id: "activos", label: "Activos", test: (c) => esActivo(c), color: "#5ba5c0" },
+  { id: "Activo", label: "Activo", test: (c) => c.estado === "Activo", color: COLOR_ESTADO.Activo[2] },
+  { id: "Renovado", label: "Renovado", test: (c) => c.estado === "Renovado", color: COLOR_ESTADO.Renovado[2] },
+  { id: "Finalizado", label: "Finalizado", test: (c) => c.estado === "Finalizado", color: COLOR_ESTADO.Finalizado[2] },
+  { id: "Baja", label: "Baja", test: (c) => c.estado === "Baja", color: COLOR_ESTADO.Baja[2] },
+  { id: "todos", label: "Todos", test: () => true, color: "#6b7280" },
 ];
+
+function ClienteCard({ c, d, onClick }) {
+  const acento = (COLOR_SEMAFORO[d.semaforo] || COLOR_SEMAFORO["⚫"])[2];
+  const carreraCerca = d.proximaCarrera && d.diasProximaCarrera != null && d.diasProximaCarrera <= 40;
+  return (
+    <button className="cliente-card" style={{ borderLeftColor: acento }} onClick={onClick}>
+      <div className="cc-top">
+        <span className="cc-nombre">{c.nombre}</span>
+        <EtiquetaEstado estado={c.estado} />
+      </div>
+      <div className="cc-sub">
+        {c.modalidad}
+        {c.numRenovaciones ? ` · ${c.numRenovaciones}ª renovación` : ""}
+      </div>
+      <div className="cc-progreso">
+        <Progreso pct={d.pct} semaforo={d.semaforo} />
+        <span className="cc-semana">
+          sem {d.semanaPrograma}/{c.semanasTotal}
+        </span>
+      </div>
+      <div className="cc-pie">
+        <Semaforo semaforo={d.semaforo} diasRestantes={d.diasRestantes} />
+        {carreraCerca && <span className="cc-carrera">🏁 {d.diasProximaCarrera} d</span>}
+        <span className="cc-importe">{c.importe} €</span>
+      </div>
+    </button>
+  );
+}
 
 export default function ClientesTab({ doc, actualizar, abrirFicha }) {
   const [filtro, setFiltro] = useState("activos");
@@ -50,16 +78,20 @@ export default function ClientesTab({ doc, actualizar, abrirFicha }) {
         </Boton>
       </div>
 
-      <div className="chips" style={{ marginBottom: 14 }}>
-        {FILTROS.map((f) => (
-          <button
-            key={f.id}
-            className={`chip ${filtro === f.id ? "activo" : ""}`}
-            onClick={() => setFiltro(f.id)}
-          >
-            {f.label} <span className="chip-n">{conteos[f.id]}</span>
-          </button>
-        ))}
+      <div className="chips" style={{ marginBottom: 16 }}>
+        {FILTROS.map((f) => {
+          const activo = filtro === f.id;
+          return (
+            <button
+              key={f.id}
+              className={`chip ${activo ? "activo" : ""}`}
+              style={activo ? { background: f.color, borderColor: f.color } : { borderColor: f.color }}
+              onClick={() => setFiltro(f.id)}
+            >
+              {f.label} <span className="chip-n">{conteos[f.id]}</span>
+            </button>
+          );
+        })}
       </div>
 
       {lista.length === 0 ? (
@@ -72,23 +104,9 @@ export default function ClientesTab({ doc, actualizar, abrirFicha }) {
           </p>
         </div>
       ) : (
-        <div className="tarjeta" style={{ padding: 0, marginTop: 0 }}>
+        <div className="clientes-grid">
           {lista.map(({ c, d }) => (
-            <button key={c.id} className="fila-cliente" onClick={() => abrirFicha(c.id)}>
-              <div className="fc-nombre">
-                <strong>{c.nombre}</strong>
-                <div className="pista">
-                  {c.modalidad} · semana {d.semanaPrograma}/{c.semanasTotal}
-                  {c.numRenovaciones ? ` · R${c.numRenovaciones}` : ""}
-                </div>
-              </div>
-              <div className="fc-meta">
-                <EtiquetaEstado estado={c.estado} />
-                <Semaforo semaforo={d.semaforo} diasRestantes={d.diasRestantes} />
-                <span className="fc-importe">{c.importe} €</span>
-              </div>
-              <div className="fc-flecha">›</div>
-            </button>
+            <ClienteCard key={c.id} c={c} d={d} onClick={() => abrirFicha(c.id)} />
           ))}
         </div>
       )}

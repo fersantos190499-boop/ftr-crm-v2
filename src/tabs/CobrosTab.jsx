@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { cobrosPorMes } from "../lib/consultas.js";
 import { fFecha, fMesAnyo } from "../lib/fechas.js";
-import { Boton } from "../components/ui.jsx";
+import { Boton, EtiquetaPago } from "../components/ui.jsx";
 import CobroForm from "../forms/CobroForm.jsx";
 
 export default function CobrosTab({ doc, actualizar, abrirFicha }) {
@@ -101,7 +101,9 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
                     <td>{co.concepto}</td>
                     <td>{co.metodo}</td>
                     <td style={{ textAlign: "right" }}>{co.importe} €</td>
-                    <td>{co.estado}</td>
+                    <td>
+                      <EtiquetaPago estado={co.estado} />
+                    </td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       <button className="mini" onClick={() => setForm({ cobro: co })}>
                         ✏️

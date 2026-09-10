@@ -5,8 +5,8 @@
 //   cada una con su propia confirmación.
 
 import { useEffect, useMemo, useState } from "react";
-import { Modal, Campo, Selector, Interruptor, TextArea, Boton, Barra, Semaforo, EtiquetaEstado, Aviso } from "../components/ui.jsx";
-import { ESTADOS } from "../lib/estado.js";
+import { Modal, Campo, Selector, Interruptor, TextArea, Boton, Progreso, Semaforo, EtiquetaEstado, EtiquetaPago, Aviso } from "../components/ui.jsx";
+import { ESTADOS, COLOR_ESTADO } from "../lib/estado.js";
 import { LISTA_MODALIDADES, semanasDeModalidad, calcularCliente } from "../lib/logica.js";
 import { cobrosDeCliente, METODOS_PAGO, ESTADOS_PAGO, marcarLlamadaRenovacion, marcarLlamadaOptimizacion } from "../lib/clientes.js";
 import { fFecha } from "../lib/fechas.js";
@@ -168,20 +168,26 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
       <div className="ficha-seccion">
         <div className="ficha-titulo">Estado</div>
         <div className="chips">
-          {ESTADOS.map((e) => (
-            <button
-              key={e}
-              className={`chip ${e === cliente.estado ? "activo" : ""}`}
-              onClick={() => cambiarEstado(e)}
-            >
-              {e}
-            </button>
-          ))}
+          {ESTADOS.map((e) => {
+            const activo = e === cliente.estado;
+            const col = COLOR_ESTADO[e][2];
+            return (
+              <button
+                key={e}
+                className={`chip ${activo ? "activo" : ""}`}
+                style={activo ? { background: col, borderColor: col } : { borderColor: col }}
+                onClick={() => cambiarEstado(e)}
+              >
+                {e}
+              </button>
+            );
+          })}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-          <div style={{ flex: 1 }}>
-            <Barra pct={previa.pct} />
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+          <Progreso pct={previa.pct} semaforo={previa.semaforo} />
+          <span className="cc-semana">
+            sem {previa.semanaPrograma}/{semanasDeModalidad(borrador.modalidad)}
+          </span>
           <Semaforo semaforo={previa.semaforo} diasRestantes={previa.diasRestantes} />
         </div>
         <div className="pista" style={{ marginTop: 4 }}>
@@ -250,7 +256,9 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
                   <td>{c.concepto}</td>
                   <td>{c.metodo}</td>
                   <td style={{ textAlign: "right" }}>{c.importe} €</td>
-                  <td>{c.estado}</td>
+                  <td>
+                    <EtiquetaPago estado={c.estado} />
+                  </td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <button className="mini" onClick={() => setFormCobro({ cobro: c })}>
                       ✏️

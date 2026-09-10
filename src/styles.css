@@ -469,90 +469,237 @@ button.mini:hover {
   background: rgba(0, 0, 0, 0.06);
 }
 
-/* ── Fila de cliente en el listado ── */
-.fila-cliente {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+/* ── Píldoras (estado, semáforo, urgencia) ── */
+.pill {
+  display: inline-flex;
   align-items: center;
-  gap: 14px;
-  width: 100%;
-  text-align: left;
-  background: var(--tarjeta);
-  border: none;
-  border-bottom: 1px solid var(--borde-suave);
-  padding: 13px 18px;
-  cursor: pointer;
-  font: inherit;
-  transition: background 0.12s;
-}
-.fila-cliente:first-child {
-  border-radius: var(--r-card) var(--r-card) 0 0;
-}
-.fila-cliente:last-child {
-  border-bottom: none;
-  border-radius: 0 0 var(--r-card) var(--r-card);
-}
-.fila-cliente:hover {
-  background: #f8fafc;
-}
-.fc-nombre strong {
-  color: var(--texto-fuerte);
-}
-.fc-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.fc-importe {
+  gap: 5px;
+  font-size: 11px;
   font-weight: 600;
-  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 999px;
   white-space: nowrap;
+  line-height: 1.4;
 }
-.fc-flecha {
-  color: #b6bcc6;
-  font-size: 20px;
-  line-height: 1;
+.pill-fuerte {
+  font-weight: 700;
+}
+.pill-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
 }
 
-/* ── Panel de Inicio ── */
+/* ── Barra de progreso ── */
+.progreso {
+  height: 7px;
+  background: #eef2f5;
+  border-radius: 999px;
+  overflow: hidden;
+  flex: 1;
+}
+.progreso-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* ── Rejilla de tarjetas de cliente ── */
+.clientes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  gap: 12px;
+}
+.cliente-card {
+  text-align: left;
+  font: inherit;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde-suave);
+  border-left: 4px solid var(--azul);
+  border-radius: var(--r-card);
+  padding: 14px 15px;
+  cursor: pointer;
+  box-shadow: var(--sombra);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.cliente-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.1);
+}
+.cc-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cc-nombre {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--texto-fuerte);
+  line-height: 1.25;
+}
+.cc-sub {
+  font-size: 12px;
+  color: var(--texto-suave);
+  margin-top: -4px;
+}
+.cc-progreso {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.cc-semana {
+  font-size: 11px;
+  color: var(--texto-suave);
+  white-space: nowrap;
+}
+.cc-pie {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cc-carrera {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+.cc-importe {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--texto-fuerte);
+  white-space: nowrap;
+}
+
+/* ── Panel de Inicio: KPIs ── */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 12px;
   margin-bottom: 14px;
 }
 .kpi {
-  padding: 16px 18px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid transparent;
+}
+.kpi-icono {
+  font-size: 20px;
+  line-height: 1;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+.kpi-cuerpo {
+  min-width: 0;
 }
 .kpi-valor {
-  font-size: 26px;
+  font-size: 25px;
   font-weight: 700;
-  color: var(--azul-osc);
   line-height: 1.05;
 }
 .kpi-etiqueta {
   font-size: 12px;
   font-weight: 600;
   color: var(--texto);
-  margin-top: 5px;
+  margin-top: 4px;
 }
 .kpi .pista {
   margin-top: 2px;
 }
-.enlace-fila {
-  width: 100%;
-  border: none;
+.kpi-azul {
+  background: #eef7fa;
+  border-color: #d6ebf2;
+}
+.kpi-azul .kpi-icono {
+  background: #d6ebf2;
+}
+.kpi-azul .kpi-valor {
+  color: var(--azul-osc);
+}
+.kpi-verde {
+  background: #edfaf1;
+  border-color: #d3f0dd;
+}
+.kpi-verde .kpi-icono {
+  background: #d3f0dd;
+}
+.kpi-verde .kpi-valor {
+  color: #15803d;
+}
+.kpi-ambar {
+  background: #fdf6e8;
+  border-color: #f6e6c4;
+}
+.kpi-ambar .kpi-icono {
+  background: #f6e6c4;
+}
+.kpi-ambar .kpi-valor {
+  color: #b45309;
+}
+
+/* ── Panel de Inicio: alertas en color ── */
+.alertas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.alerta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
   cursor: pointer;
   font: inherit;
   text-align: left;
-  transition: background 0.12s;
+  transition: filter 0.12s;
 }
-.enlace-fila:hover {
-  background: #eef2f6;
+.alerta:hover {
+  filter: brightness(0.97);
 }
-.alerta-num {
-  color: var(--ambar);
+.alerta-icono {
+  font-size: 18px;
+}
+.alerta-texto {
+  font-size: 12.5px;
+  font-weight: 600;
+  flex: 1;
+  line-height: 1.2;
+}
+.alerta-cifra {
+  font-size: 20px;
   font-weight: 700;
+  white-space: nowrap;
+}
+.alerta-extra {
+  font-size: 12px;
+  font-weight: 600;
+}
+.alerta-ambar {
+  background: #fdf6e8;
+  border-color: #f2dfb4;
+  color: #b45309;
+}
+.alerta-rojo {
+  background: #fdecec;
+  border-color: #f5cccc;
+  color: #b91c1c;
+}
+.alerta-ok {
+  background: #edfaf1;
+  border-color: #d3f0dd;
+  color: #15803d;
 }
 
 /* ── Bloques de las pestañas globales ── */
@@ -649,47 +796,23 @@ button.mini:hover {
   .lista-simple li > span:last-child {
     align-self: flex-end;
   }
-  /* las filas-enlace del panel (etiqueta + número) se quedan en horizontal */
-  .fila-llamada.enlace-fila {
-    flex-direction: row;
-    align-items: center;
-  }
 
-  /* fila de cliente: nombre arriba, meta repartida debajo */
-  .fila-cliente {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 9px;
-    padding: 13px 14px;
-  }
-  .fc-meta {
-    justify-content: space-between;
-  }
-  .fc-flecha {
-    display: none;
-  }
-
-  /* KPIs: apilados y compactos (número + texto en línea) */
+  /* KPIs: apilados, con el icono a la izquierda */
   .kpi-grid {
     grid-template-columns: 1fr;
     gap: 10px;
   }
   .kpi {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    padding: 14px 16px;
+    padding: 13px 14px;
+    align-items: center;
   }
   .kpi-valor {
-    font-size: 24px;
-    flex-shrink: 0;
+    font-size: 22px;
   }
-  .kpi-cuerpo {
-    min-width: 0;
-  }
-  .kpi-etiqueta {
-    margin-top: 0;
+
+  /* alertas: una por fila */
+  .alertas-grid {
+    grid-template-columns: 1fr;
   }
 
   .resumen {

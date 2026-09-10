@@ -1,6 +1,6 @@
 // ─── COMPONENTES DE INTERFAZ REUTILIZABLES ────────
 import { useEffect } from "react";
-import { COLOR_ESTADO } from "../lib/estado.js";
+import { COLOR_ESTADO, COLOR_SEMAFORO } from "../lib/estado.js";
 
 export function Boton({ children, onClick, variante = "normal", type = "button", disabled, style }) {
   return (
@@ -37,35 +37,51 @@ export function Etiqueta({ children, bg = "#f3f4f6", fg = "#374151" }) {
 export function EtiquetaEstado({ estado }) {
   const [bg, fg] = COLOR_ESTADO[estado] || ["#f3f4f6", "#6b7280"];
   return (
-    <Etiqueta bg={bg} fg={fg}>
+    <span className="pill" style={{ background: bg, color: fg }}>
+      <span className="pill-punto" style={{ background: (COLOR_ESTADO[estado] || [])[2] || fg }} />
       {estado}
-    </Etiqueta>
+    </span>
   );
 }
-
-const COLOR_SEMAFORO = {
-  "🔴": ["#fee2e2", "#dc2626"],
-  "🟡": ["#fef9c3", "#ca8a04"],
-  "🟢": ["#dcfce7", "#16a34a"],
-  "⚫": ["#f3f4f6", "#9ca3af"],
-};
 
 export function Semaforo({ semaforo, diasRestantes }) {
   const [bg, fg] = COLOR_SEMAFORO[semaforo] || COLOR_SEMAFORO["⚫"];
   return (
-    <span
-      style={{
-        background: bg,
-        color: fg,
-        fontSize: 11,
-        fontWeight: 700,
-        padding: "3px 10px",
-        borderRadius: 20,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {semaforo} {diasRestantes != null && diasRestantes > 0 ? `${diasRestantes}d` : "Fin"}
+    <span className="pill pill-fuerte" style={{ background: bg, color: fg }}>
+      {semaforo}{" "}
+      {diasRestantes != null && diasRestantes > 0
+        ? `${diasRestantes} d`
+        : diasRestantes != null
+          ? "Fin"
+          : "—"}
     </span>
+  );
+}
+
+// Etiqueta de estado de un cobro: Cobrado (verde) / Pendiente (ámbar).
+export function EtiquetaPago({ estado }) {
+  const cobrado = estado === "Cobrado";
+  return (
+    <span
+      className="pill"
+      style={cobrado ? { background: "#e9f9ee", color: "#15803d" } : { background: "#fdf4e3", color: "#b45309" }}
+    >
+      <span className="pill-punto" style={{ background: cobrado ? "#22c55e" : "#f59e0b" }} />
+      {estado}
+    </span>
+  );
+}
+
+// Barra de progreso del ciclo, con color por urgencia (semáforo).
+export function Progreso({ pct, semaforo }) {
+  const color = (COLOR_SEMAFORO[semaforo] || COLOR_SEMAFORO["⚫"])[2];
+  return (
+    <div className="progreso">
+      <div
+        className="progreso-fill"
+        style={{ width: `${Math.min((pct || 0) * 100, 100)}%`, background: color }}
+      />
+    </div>
   );
 }
 

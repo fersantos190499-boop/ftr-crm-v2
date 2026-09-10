@@ -16,10 +16,26 @@ export function esCerrado(cliente) {
   return cliente?.estado === "Renovado" || cliente?.estado === "Finalizado" || cliente?.estado === "Baja";
 }
 
-// Colores por estado (fondo, texto) para las etiquetas de la interfaz.
+// Paleta por estado: [fondo, texto, acento].
 export const COLOR_ESTADO = {
-  Activo: ["#e8f5fa", "#3d8aa5"],
-  Renovado: ["#ede9fe", "#7c3aed"],
-  Finalizado: ["#f3f4f6", "#6b7280"],
-  Baja: ["#fee2e2", "#dc2626"],
+  Activo: ["#e7f3f8", "#256780", "#5ba5c0"],
+  Renovado: ["#f1ecfe", "#6d28d9", "#8b5cf6"],
+  Finalizado: ["#f1f3f5", "#5b6472", "#9ca3af"],
+  Baja: ["#ffeef1", "#be123c", "#f43f5e"],
 };
+
+// Paleta por color de semáforo (urgencia): [fondo, texto, acento].
+export const COLOR_SEMAFORO = {
+  "🔴": ["#fdecec", "#b91c1c", "#ef4444"],
+  "🟡": ["#fdf4e3", "#b45309", "#f59e0b"],
+  "🟢": ["#e9f9ee", "#15803d", "#22c55e"],
+  "⚫": ["#f1f3f5", "#6b7280", "#9ca3af"],
+};
+
+// Color de urgencia a partir de días restantes (para carreras, plazos…).
+export function urgenciaPorDias(dias) {
+  if (dias == null) return "⚫";
+  if (dias <= 7) return "🔴";
+  if (dias <= 21) return "🟡";
+  return "🟢";
+}

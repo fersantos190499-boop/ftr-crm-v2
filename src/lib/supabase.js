@@ -8,7 +8,9 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1d2N2emxjeGRjYnl2bHhpYnJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MzUzNTUsImV4cCI6MjEwMDIxMTM1NX0.F_gLyBH7oL5T8KOg3N1GUndBoPhS4k17AYLrZWlDCDc";
 
 const TABLA = "ftr_crm";
-const FILA_ID = 1;
+// Fila 1 = datos reales. En desarrollo se puede apuntar a otra fila (p. ej. 2)
+// con VITE_FILA_ID para no tocar los datos de producción al hacer pruebas.
+const FILA_ID = Number(import.meta.env.VITE_FILA_ID) || 1;
 
 const CABECERAS = {
   apikey: SUPABASE_ANON_KEY,
