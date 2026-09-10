@@ -46,7 +46,7 @@ export default function CobroForm({ clienteId, clientes, cobro, onCerrar, actual
   };
 
   return (
-    <Modal titulo={edicion ? "✏️ Editar cobro" : "➕ Nuevo cobro"} onCerrar={onCerrar} ancho={480}>
+    <Modal titulo={edicion ? "Editar cobro" : "Nuevo cobro"} onCerrar={onCerrar} ancho={480}>
       <div className="form-grid">
         {necesitaSelector && (
           <Selector

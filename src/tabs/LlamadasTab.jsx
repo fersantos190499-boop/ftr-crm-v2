@@ -4,6 +4,7 @@
 import { llamadas } from "../lib/consultas.js";
 import { marcarLlamadaRenovacion, marcarLlamadaOptimizacion } from "../lib/clientes.js";
 import { Boton } from "../components/ui.jsx";
+import Icono from "../components/Icono.jsx";
 
 function badge(item) {
   return item.ambito === "global" ? `SG${item.semana}` : `S${item.semana}`;
@@ -13,7 +14,7 @@ function FilaLlamada({ item, abrirFicha, onHecha }) {
   const esRen = item.tipo === "renovacion";
   return (
     <div className={`llamada ${esRen ? "llamada-renov" : "llamada-optim"}`}>
-      <span className="llamada-ico">{esRen ? "🔔" : "📞"}</span>
+      <span className="llamada-ico"><Icono nombre={esRen ? "renovar" : "telefono"} size={16} /></span>
       <div className="llamada-txt">
         <button className="enlace" onClick={() => abrirFicha(item.cliente.id)}>
           <strong className={esRen ? "t-renov" : "t-optim"}>
@@ -50,7 +51,7 @@ export default function LlamadasTab({ doc, actualizar, abrirFicha }) {
   if (vacio) {
     return (
       <div className="vacio">
-        <div className="emoji">✅</div>
+        <Icono nombre="ok" size={42} className="ico-vacio" />
         <p>Nada pendiente ni previsto. Todo al día.</p>
       </div>
     );
@@ -61,7 +62,7 @@ export default function LlamadasTab({ doc, actualizar, abrirFicha }) {
       {pendientes.length > 0 && (
         <section className="bloque bloque-alerta">
           <h3 className="bloque-titulo">
-            🔴 Llamadas pendientes <span className="cuenta">{pendientes.length}</span>
+            Llamadas pendientes <span className="cuenta">{pendientes.length}</span>
           </h3>
           <div className="llamadas-lista">
             {pendientes.map((it) => (
@@ -79,7 +80,7 @@ export default function LlamadasTab({ doc, actualizar, abrirFicha }) {
       {semanaQueViene.length > 0 && (
         <section className="bloque bloque-agendar">
           <h3 className="bloque-titulo">
-            ⏰ Agendar para la semana que viene <span className="cuenta">{semanaQueViene.length}</span>
+            Agendar para la semana que viene <span className="cuenta">{semanaQueViene.length}</span>
           </h3>
           <p className="pista" style={{ marginTop: -6, marginBottom: 10 }}>
             Estas llamadas tocan la semana que viene: agéndalas ya.
@@ -99,7 +100,7 @@ export default function LlamadasTab({ doc, actualizar, abrirFicha }) {
       {revisionMensual.length > 0 && (
         <section className="bloque">
           <h3 className="bloque-titulo">
-            📋 Revisión mensual esta semana <span className="cuenta">{revisionMensual.length}</span>
+            Revisión mensual esta semana <span className="cuenta">{revisionMensual.length}</span>
           </h3>
           <div className="llamadas-lista">
             {revisionMensual.map(({ cliente, d }) => (
@@ -121,12 +122,12 @@ export default function LlamadasTab({ doc, actualizar, abrirFicha }) {
       {proximas.length > 0 && (
         <section className="bloque">
           <h3 className="bloque-titulo">
-            🗓️ Próximas (2-3 semanas) <span className="cuenta">{proximas.length}</span>
+            Próximas (2-3 semanas) <span className="cuenta">{proximas.length}</span>
           </h3>
           <div className="llamadas-lista">
             {proximas.map((it) => (
               <div className="llamada llamada-plana" key={`${it.cliente.id}-${it.tipo}-${it.semana}`}>
-                <span className="llamada-ico">{it.tipo === "renovacion" ? "🔔" : "📞"}</span>
+                <span className="llamada-ico"><Icono nombre={it.tipo === "renovacion" ? "renovar" : "telefono"} size={16} /></span>
                 <div className="llamada-txt">
                   <button className="enlace" onClick={() => abrirFicha(it.cliente.id)}>
                     {it.tipo === "renovacion" ? "Renovación" : "Optimización"} · {it.cliente.nombre}

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { cobrosPorMes, serieIngresos } from "../lib/consultas.js";
 import { fFecha, fMesAnyo, claveMes } from "../lib/fechas.js";
 import { Boton, EtiquetaMetodo, EtiquetaPago } from "../components/ui.jsx";
+import Icono from "../components/Icono.jsx";
 import { METODOS_PAGO } from "../lib/clientes.js";
 import GraficaIngresos from "../components/GraficaIngresos.jsx";
 import CobroForm from "../forms/CobroForm.jsx";
@@ -130,7 +131,7 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
 
       {grupos.length === 0 ? (
         <div className="vacio">
-          <div className="emoji">💸</div>
+          <Icono nombre="euro" size={42} className="ico-vacio" />
           <p>No hay cobros con este filtro.</p>
         </div>
       ) : (
@@ -176,12 +177,8 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
                         <EtiquetaPago estado={co.estado} />
                       </td>
                       <td style={{ whiteSpace: "nowrap" }}>
-                        <button className="mini" onClick={() => setForm({ cobro: co })}>
-                          ✏️
-                        </button>
-                        <button className="mini" onClick={() => borrar(co)}>
-                          🗑️
-                        </button>
+                        <button className="mini" onClick={() => setForm({ cobro: co })}><Icono nombre="editar" size={15} /></button>
+                        <button className="mini" onClick={() => borrar(co)}><Icono nombre="papelera" size={15} /></button>
                       </td>
                     </tr>
                   ))}

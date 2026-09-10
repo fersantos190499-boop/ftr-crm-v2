@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { COLOR_ESTADO, COLOR_SEMAFORO, urgenciaPorDias } from "../lib/estado.js";
 import { COLOR_METODO } from "../lib/clientes.js";
+import Icono from "./Icono.jsx";
 
 export function Boton({ children, onClick, variante = "normal", type = "button", disabled, style }) {
   return (
@@ -209,7 +210,7 @@ export function Modal({ titulo, subtitulo, onCerrar, children, ancho = 560 }) {
             {subtitulo && <div className="modal-subtitulo">{subtitulo}</div>}
           </div>
           <button className="modal-x" onClick={onCerrar} aria-label="Cerrar">
-            ✕
+            <Icono nombre="x" size={16} />
           </button>
         </div>
         {children}

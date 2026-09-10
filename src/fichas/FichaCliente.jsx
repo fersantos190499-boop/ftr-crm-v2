@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Modal, Campo, Selector, Interruptor, TextArea, Boton, Progreso, Semaforo, EtiquetaEstado, EtiquetaPago, Aviso } from "../components/ui.jsx";
+import Icono from "../components/Icono.jsx";
 import { ESTADOS, COLOR_ESTADO } from "../lib/estado.js";
 import { LISTA_MODALIDADES, semanasDeModalidad, calcularCliente } from "../lib/logica.js";
 import { cobrosDeCliente, METODOS_PAGO, ESTADOS_PAGO, marcarLlamadaRenovacion, marcarLlamadaOptimizacion, registrarContacto } from "../lib/clientes.js";
@@ -268,12 +269,8 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
                     <EtiquetaPago estado={c.estado} />
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <button className="mini" onClick={() => setFormCobro({ cobro: c })}>
-                      ✏️
-                    </button>
-                    <button className="mini" onClick={() => borrarCobro(c.id)}>
-                      🗑️
-                    </button>
+                    <button className="mini" onClick={() => setFormCobro({ cobro: c })}><Icono nombre="editar" size={15} /></button>
+                    <button className="mini" onClick={() => borrarCobro(c.id)}><Icono nombre="papelera" size={15} /></button>
                   </td>
                 </tr>
               ))}
@@ -310,12 +307,8 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
                   <strong>{r.nombre}</strong> — {fFecha(r.fecha)}
                 </span>
                 <span style={{ whiteSpace: "nowrap" }}>
-                  <button className="mini" onClick={() => setFormCarrera({ carrera: r })}>
-                    ✏️
-                  </button>
-                  <button className="mini" onClick={() => borrarCarrera(r.id)}>
-                    🗑️
-                  </button>
+                  <button className="mini" onClick={() => setFormCarrera({ carrera: r })}><Icono nombre="editar" size={15} /></button>
+                  <button className="mini" onClick={() => borrarCarrera(r.id)}><Icono nombre="papelera" size={15} /></button>
                 </span>
               </li>
             ))}
@@ -329,7 +322,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
         <div className="lista-simple">
           <div className="fila-llamada">
             <span>
-              🔔 Renovación (semana {previa.semanaRenovacion})
+              Renovación (semana {previa.semanaRenovacion})
               {previa.esRenovacionAhora && !cliente.llamadaRenovacion?.hecha && (
                 <span style={{ color: "#dc2626", fontWeight: 700 }}> · toca esta semana</span>
               )}
@@ -346,7 +339,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
             return (
               <div className="fila-llamada" key={w}>
                 <span>
-                  📞 Optimización (semana global {w})
+                  Optimización (semana global {w})
                   {previa.semanaGlobal === w && !hecha && (
                     <span style={{ color: "#ca8a04", fontWeight: 700 }}> · toca ahora</span>
                   )}
@@ -412,7 +405,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
             {previa.esRenovacionAhora && <span style={{ color: "#dc2626", fontWeight: 700 }}> · toca esta semana</span>}
           </span>
           <Boton variante="primario" onClick={() => setFormRenovacion(true)}>
-            🔄 Registrar renovación
+            Registrar renovación
           </Boton>
         </div>
       </div>
@@ -425,7 +418,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
             {cliente.historialCiclos.map((h, i) => (
               <li key={i}>
                 <span>
-                  {h.motivo === "alta" ? "🟢 Alta" : "🔄 Renovación"} — {fFecha(h.fecha)}
+                  {h.motivo === "alta" ? "Alta" : "Renovación"} — {fFecha(h.fecha)}
                 </span>
                 <span className="pista">
                   {h.modalidad} · {h.importe} €

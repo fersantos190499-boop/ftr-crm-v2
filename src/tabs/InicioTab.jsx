@@ -1,14 +1,17 @@
 // ─── PESTAÑA INICIO (panel) ───────────────────────
-// El negocio de un vistazo, con color: KPIs, alertas y próximas carreras.
+// El negocio de un vistazo: KPIs, alertas y próximas carreras.
 
 import { panelInicio } from "../lib/consultas.js";
 import { fMesAnyo, fFecha } from "../lib/fechas.js";
 import { COLOR_SEMAFORO, urgenciaPorDias } from "../lib/estado.js";
+import Icono from "../components/Icono.jsx";
 
 function Kpi({ icono, etiqueta, valor, sub, tono }) {
   return (
     <div className={`kpi kpi-${tono}`}>
-      <div className="kpi-icono">{icono}</div>
+      <div className="kpi-icono">
+        <Icono nombre={icono} size={20} />
+      </div>
       <div className="kpi-cuerpo">
         <div className="kpi-valor">{valor}</div>
         <div className="kpi-etiqueta">{etiqueta}</div>
@@ -20,14 +23,25 @@ function Kpi({ icono, etiqueta, valor, sub, tono }) {
 
 function Alerta({ icono, texto, num, extra, tono, onClick }) {
   return (
-    <button className={`alerta alerta-${tono}`} onClick={onClick}>
-      <span className="alerta-icono">{icono}</span>
+    <button className={`alerta ${tono}`} onClick={onClick}>
+      <span className="alerta-icono">
+        <Icono nombre={icono} size={17} />
+      </span>
       <span className="alerta-texto">{texto}</span>
       <span className="alerta-cifra">
         {num}
         {extra ? <span className="alerta-extra"> {extra}</span> : null}
       </span>
     </button>
+  );
+}
+
+function Titulo({ icono, children, n }) {
+  return (
+    <h3 className="bloque-titulo">
+      <Icono nombre={icono} size={17} className="ico" /> {children}
+      {n != null && <span className="cuenta">{n}</span>}
+    </h3>
   );
 }
 
@@ -38,7 +52,7 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
   if (doc.clientes.length === 0) {
     return (
       <div className="vacio">
-        <div className="emoji">📊</div>
+        <Icono nombre="grafica" size={44} className="ico-vacio" />
         <p>
           Aún no hay datos. Empieza en la pestaña{" "}
           <button className="enlace" onClick={() => irATab("clientes")}>
@@ -56,21 +70,21 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
     <div>
       <div className="kpi-grid">
         <Kpi
-          icono="👥"
-          tono="azul"
+          icono="clientes"
+          tono="brand"
           etiqueta="Clientes activos"
           valor={p.activos}
           sub={`${p.nActivo} activo · ${p.nRenovado} renovado`}
         />
         <Kpi
-          icono="💶"
+          icono="euro"
           tono="verde"
           etiqueta={`Ingresos · ${mesTxt}`}
           valor={`${p.ingresosMes} €`}
           sub={p.ingresosMesPendiente > 0 ? `+ ${p.ingresosMesPendiente} € por cobrar` : "todo cobrado"}
         />
         <Kpi
-          icono="🔁"
+          icono="renovar"
           tono="ambar"
           etiqueta="Renovaciones este mes"
           valor={p.renovacionesMes.length}
@@ -80,21 +94,21 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
 
       {/* Alertas */}
       <section className="bloque">
-        <h3 className="bloque-titulo">🔔 Alertas</h3>
+        <Titulo icono="campana">Alertas</Titulo>
         <div className="alertas-grid">
           <Alerta
-            icono="📞"
+            icono="telefono"
             texto="Llamadas pendientes"
             num={nLlamadas}
-            tono={nLlamadas > 0 ? "ambar" : "ok"}
-            onClick={() => irATab("llamadas")}
+            tono={nLlamadas > 0 ? "hay" : ""}
+            onClick={() => irATab("semana")}
           />
           <Alerta
-            icono="💸"
+            icono="euro"
             texto="Pagos pendientes"
             num={p.pagosPendientes.length}
             extra={p.totalPendiente > 0 ? `· ${p.totalPendiente} €` : ""}
-            tono={p.pagosPendientes.length > 0 ? "rojo" : "ok"}
+            tono={p.pagosPendientes.length > 0 ? "grave" : ""}
             onClick={() => irATab("cobros")}
           />
         </div>
@@ -122,9 +136,9 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
       {/* Revisión mensual esta semana */}
       {p.revisionMensual.length > 0 && (
         <section className="bloque">
-          <h3 className="bloque-titulo">
-            📋 Revisión mensual esta semana <span className="cuenta">{p.revisionMensual.length}</span>
-          </h3>
+          <Titulo icono="revision" n={p.revisionMensual.length}>
+            Revisión mensual esta semana
+          </Titulo>
           <div className="lista-simple">
             {p.revisionMensual.map(({ cliente, d }) => (
               <div className="fila-llamada" key={cliente.id}>
@@ -143,16 +157,15 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
       {/* Renovaciones del mes */}
       {p.renovacionesMes.length > 0 && (
         <section className="bloque">
-          <h3 className="bloque-titulo">🔁 Renovaciones previstas de {mesTxt}</h3>
+          <Titulo icono="renovar" n={p.renovacionesMes.length}>
+            Renovaciones previstas de {mesTxt}
+          </Titulo>
           <div className="lista-simple">
             {p.renovacionesMes.map(({ cliente, d }) => (
               <div className="fila-llamada" key={cliente.id}>
                 <button className="enlace" onClick={() => abrirFicha(cliente.id)}>
                   <strong>{cliente.nombre}</strong>
-                  <span className="pista">
-                    {" "}
-                    · {cliente.modalidad} · {cliente.importe} €
-                  </span>
+                  <span className="pista"> · {cliente.modalidad} · {cliente.importe} €</span>
                 </button>
                 <span className="pista">termina {fFecha(iso(d.finDias))}</span>
               </div>
@@ -163,14 +176,13 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
 
       {/* Próximas carreras */}
       <section className="bloque">
-        <h3 className="bloque-titulo">🏁 Próximas carreras (30 días)</h3>
+        <Titulo icono="bandera">Próximas carreras (30 días)</Titulo>
         {p.carrerasProximas.length === 0 ? (
           <div className="pista">Ninguna en los próximos 30 días.</div>
         ) : (
           <div className="lista-simple">
             {p.carrerasProximas.map((f) => {
-              const u = urgenciaPorDias(f.diasRestantes);
-              const [bg, fg] = COLOR_SEMAFORO[u];
+              const [bg, fg] = COLOR_SEMAFORO[urgenciaPorDias(f.diasRestantes)];
               return (
                 <div className="fila-llamada" key={f.id}>
                   <button className="enlace" onClick={() => abrirFicha(f.clienteId)}>

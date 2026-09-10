@@ -102,10 +102,10 @@ export default function DatosTab({ doc, exportar, importar, sincronizarAhora }) 
 
         <div className="barra-superior" style={{ marginTop: 12, marginBottom: 0 }}>
           <Boton variante="primario" onClick={descargar}>
-            💾 Descargar backup (.json)
+            Descargar backup (.json)
           </Boton>
-          <Boton onClick={() => inputFichero.current?.click()}>📂 Importar backup</Boton>
-          <Boton onClick={sincronizarAhora}>🔄 Sincronizar ahora</Boton>
+          <Boton onClick={() => inputFichero.current?.click()}>Importar backup</Boton>
+          <Boton onClick={sincronizarAhora}>Sincronizar ahora</Boton>
           <input ref={inputFichero} type="file" accept=".json" hidden onChange={alImportar} />
         </div>
         {aviso && (
@@ -143,7 +143,7 @@ export default function DatosTab({ doc, exportar, importar, sincronizarAhora }) 
 
       <div className="tarjeta">
         <button className="enlace" onClick={() => setVerGuia((v) => !v)} style={{ fontWeight: 700 }}>
-          {verGuia ? "▾" : "▸"} ℹ️ Cómo empezar (viniendo del CRM antiguo)
+          {verGuia ? "▾" : "▸"} Cómo empezar (viniendo del CRM antiguo)
         </button>
         {verGuia && (
           <div className="pista" style={{ marginTop: 10, lineHeight: 1.6 }}>

@@ -39,7 +39,7 @@ export default function CarreraForm({ clienteId, clientes, carrera, onCerrar, ac
   };
 
   return (
-    <Modal titulo={edicion ? "✏️ Editar carrera" : "🏁 Nueva carrera"} onCerrar={onCerrar} ancho={420}>
+    <Modal titulo={edicion ? "Editar carrera" : "Nueva carrera"} onCerrar={onCerrar} ancho={420}>
       <div className="form-grid">
         {necesitaSelector && (
           <Selector

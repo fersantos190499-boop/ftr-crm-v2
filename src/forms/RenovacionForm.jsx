@@ -48,7 +48,7 @@ export default function RenovacionForm({ cliente, actualizar, onCerrar }) {
 
   return (
     <Modal
-      titulo={`🔄 Renovar — ${cliente.nombre}`}
+      titulo={`Renovar — ${cliente.nombre}`}
       subtitulo={`Renovación nº ${(cliente.numRenovaciones || 0) + 1} · el mismo cliente, el mismo registro`}
       onCerrar={onCerrar}
     >
@@ -108,7 +108,7 @@ export default function RenovacionForm({ cliente, actualizar, onCerrar }) {
 
       <div className="modal-acciones">
         <Boton variante="primario" onClick={confirmar}>
-          ✅ Confirmar renovación
+          Confirmar renovación
         </Boton>
         <Boton onClick={onCerrar}>Cancelar</Boton>
       </div>

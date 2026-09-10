@@ -12,6 +12,7 @@ import {
 } from "../lib/clientes.js";
 import { fFecha, fFechaCorta, hoyDias, diasAIso } from "../lib/fechas.js";
 import { Boton } from "../components/ui.jsx";
+import Icono from "../components/Icono.jsx";
 import RenovacionForm from "../forms/RenovacionForm.jsx";
 
 function Seccion({ icono, titulo, n, children }) {
@@ -19,7 +20,8 @@ function Seccion({ icono, titulo, n, children }) {
   return (
     <section className="bloque">
       <h3 className="bloque-titulo">
-        {icono} {titulo} <span className="cuenta">{n}</span>
+        <Icono nombre={icono} size={17} className="ico" /> {titulo}{" "}
+        <span className="cuenta">{n}</span>
       </h3>
       <div className="sem-lista">{children}</div>
     </section>
@@ -32,7 +34,9 @@ function FilaLlamada({ item, onHecha }) {
   return (
     <div className={`sem-fila sem-fila-col ${esRen ? "llamada-renov" : "llamada-optim"}`}>
       <div className="sem-fila-top">
-        <span className="llamada-ico">{esRen ? "🔔" : "📞"}</span>
+        <span className="llamada-ico">
+          <Icono nombre={esRen ? "renovar" : "telefono"} size={16} />
+        </span>
         <span className="sem-txt">
           <strong className={esRen ? "t-renov" : "t-optim"}>
             {esRen ? "Renovación" : "Optimización"}
@@ -51,7 +55,7 @@ function FilaLlamada({ item, onHecha }) {
           onChange={(e) => setNota(e.target.value)}
         />
         <Boton variante="primario" onClick={() => onHecha(nota)}>
-          ✓ Hecha
+          <Icono nombre="check" size={15} /> Hecha
         </Boton>
       </div>
     </div>
@@ -100,7 +104,7 @@ export default function SemanaTab({ doc, actualizar, abrirFicha }) {
   if (a.total === 0) {
     return (
       <div className="vacio">
-        <div className="emoji">☕</div>
+        <Icono nombre="ok" size={44} className="ico-vacio" />
         <p>Semana despejada. Nada pendiente de agendar ni de hacer.</p>
       </div>
     );
@@ -118,13 +122,13 @@ export default function SemanaTab({ doc, actualizar, abrirFicha }) {
         </div>
       </div>
 
-      <Seccion icono="📞" titulo="Llamadas a hacer" n={a.llamadasHacer.length}>
+      <Seccion icono="telefono" titulo="Llamadas a hacer" n={a.llamadasHacer.length}>
         {a.llamadasHacer.map((it) => (
           <FilaLlamada key={it.clave} item={it} onHecha={(nota) => marcarLlamada(it, nota)} />
         ))}
       </Seccion>
 
-      <Seccion icono="⏰" titulo="Llamadas a agendar (semana que viene)" n={a.llamadasAgendar.length}>
+      <Seccion icono="reloj" titulo="Llamadas a agendar (semana que viene)" n={a.llamadasAgendar.length}>
         {a.llamadasAgendar.map((it) => (
           <FilaSimple
             key={it.clave}
@@ -138,7 +142,7 @@ export default function SemanaTab({ doc, actualizar, abrirFicha }) {
         ))}
       </Seccion>
 
-      <Seccion icono="📋" titulo="Revisiones mensuales" n={a.revisiones.length}>
+      <Seccion icono="revision" titulo="Revisiones mensuales" n={a.revisiones.length}>
         {a.revisiones.map((it) => (
           <FilaSimple
             key={it.clave}
@@ -149,7 +153,7 @@ export default function SemanaTab({ doc, actualizar, abrirFicha }) {
         ))}
       </Seccion>
 
-      <Seccion icono="🏁" titulo="Tablas de competición a preparar" n={a.tablasCarrera.length}>
+      <Seccion icono="bandera" titulo="Tablas de competición a preparar" n={a.tablasCarrera.length}>
         {a.tablasCarrera.map((it) => (
           <FilaSimple
             key={it.clave}
@@ -160,7 +164,7 @@ export default function SemanaTab({ doc, actualizar, abrirFicha }) {
         ))}
       </Seccion>
 
-      <Seccion icono="💸" titulo="Cobros que vencen" n={a.cobrosVencen.length}>
+      <Seccion icono="euro" titulo="Cobros que vencen" n={a.cobrosVencen.length}>
         {a.cobrosVencen.map(({ cobro, cliente, dias }) => (
           <FilaSimple
             key={cobro.id}
@@ -172,7 +176,7 @@ export default function SemanaTab({ doc, actualizar, abrirFicha }) {
         ))}
       </Seccion>
 
-      <Seccion icono="🔁" titulo="Ciclos que acaban · preparar renovación" n={a.renovaciones.length}>
+      <Seccion icono="renovar" titulo="Ciclos que acaban · preparar renovación" n={a.renovaciones.length}>
         {a.renovaciones.map((it) => (
           <FilaSimple
             key={it.clave}

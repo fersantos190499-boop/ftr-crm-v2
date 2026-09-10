@@ -1,6 +1,7 @@
 // ─── PESTAÑA CLIENTES ─────────────────────────────
 import { useMemo, useState } from "react";
 import { EtiquetaEstado, Semaforo, Progreso, Boton } from "../components/ui.jsx";
+import Icono from "../components/Icono.jsx";
 import { esActivo, COLOR_ESTADO, COLOR_SEMAFORO } from "../lib/estado.js";
 import { calcularCliente } from "../lib/logica.js";
 import NuevoClienteForm from "../forms/NuevoClienteForm.jsx";
@@ -35,7 +36,7 @@ function ClienteCard({ c, d, onClick }) {
       </div>
       <div className="cc-pie">
         <Semaforo semaforo={d.semaforo} diasRestantes={d.diasRestantes} />
-        {carreraCerca && <span className="cc-carrera">🏁 {d.diasProximaCarrera} d</span>}
+        {carreraCerca && <span className="cc-carrera"><Icono nombre="bandera" size={12} /> {d.diasProximaCarrera} d</span>}
         <span className="cc-importe">{c.importe} €</span>
       </div>
     </button>
@@ -96,7 +97,7 @@ export default function ClientesTab({ doc, actualizar, abrirFicha }) {
 
       {lista.length === 0 ? (
         <div className="vacio">
-          <div className="emoji">🗂️</div>
+          <Icono nombre="clientes" size={42} className="ico-vacio" />
           <p>
             {doc.clientes.length === 0
               ? "Aún no hay clientes. Pulsa «+ Nuevo cliente» para empezar."

@@ -65,7 +65,7 @@ export default function NuevoClienteForm({ onCerrar, actualizar }) {
   };
 
   return (
-    <Modal titulo="➕ Nuevo cliente" onCerrar={onCerrar}>
+    <Modal titulo="Nuevo cliente" onCerrar={onCerrar}>
       <div className="form-grid">
         <Campo label="Nombre completo *" value={nombre} onChange={setNombre} ancho={2} />
 
@@ -121,7 +121,7 @@ export default function NuevoClienteForm({ onCerrar, actualizar }) {
 
       <div className="modal-acciones">
         <Boton variante="primario" onClick={guardar}>
-          ✅ Añadir cliente
+          Añadir cliente
         </Boton>
         <Boton onClick={onCerrar}>Cancelar</Boton>
       </div>

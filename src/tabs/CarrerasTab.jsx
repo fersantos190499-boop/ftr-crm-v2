@@ -6,6 +6,7 @@ import { carreras } from "../lib/consultas.js";
 import { calcularCliente } from "../lib/logica.js";
 import { fFecha } from "../lib/fechas.js";
 import { Boton, BadgeDias } from "../components/ui.jsx";
+import Icono from "../components/Icono.jsx";
 import CarreraForm from "../forms/CarreraForm.jsx";
 
 function TarjetaCarrera({ f, cliente, abrirFicha, onEditar }) {
@@ -16,13 +17,13 @@ function TarjetaCarrera({ f, cliente, abrirFicha, onEditar }) {
         <button className="enlace" onClick={() => abrirFicha(f.clienteId)}>
           <strong>{f.clienteNombre}</strong>
         </button>
-        <div className="carrera-nombre">🏁 {f.nombre}</div>
+        <div className="carrera-nombre"><Icono nombre="bandera" size={13} /> {f.nombre}</div>
         <div className="pista">
           {fFecha(f.fecha)}
           {d ? ` · sem ${d.semanaPrograma}/${cliente.semanasTotal} · ${cliente.modalidad}` : ""}
         </div>
         <button className="mini-enlace" onClick={onEditar}>
-          ✏️ Editar
+          <Icono nombre="editar" size={13} /> Editar
         </button>
       </div>
       <BadgeDias dias={f.diasRestantes} />
@@ -46,7 +47,7 @@ export default function CarrerasTab({ doc, actualizar, abrirFicha }) {
 
       <section className="bloque">
         <h3 className="bloque-titulo">
-          🏁 Próximas <span className="cuenta">{proximas.length}</span>
+          Próximas <span className="cuenta">{proximas.length}</span>
         </h3>
         {proximas.length === 0 ? (
           <div className="pista">No hay carreras próximas.</div>
@@ -82,9 +83,7 @@ export default function CarrerasTab({ doc, actualizar, abrirFicha }) {
                     </button>
                   </div>
                   <span className="pista">{fFecha(f.fecha)}</span>
-                  <button className="mini" onClick={() => setForm({ carrera: f })}>
-                    ✏️
-                  </button>
+                  <button className="mini" onClick={() => setForm({ carrera: f })}><Icono nombre="editar" size={15} /></button>
                 </div>
               ))}
             </div>
