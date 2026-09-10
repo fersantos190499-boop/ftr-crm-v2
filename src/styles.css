@@ -1,0 +1,135 @@
+:root {
+  --azul: #5ba5c0;
+  --azul-osc: #3d8aa5;
+  --azul-claro: #e8f5fa;
+  --fondo: #f0f4f8;
+  --texto: #374151;
+  --texto-suave: #6b7280;
+  --borde: #e5e7eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.contenedor {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.cabecera {
+  background: linear-gradient(135deg, var(--azul) 0%, var(--azul-osc) 100%);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(61, 138, 165, 0.3);
+}
+
+.cabecera .contenedor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.marca .logo {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.tarjeta {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-top: 22px;
+}
+
+.vacio {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--texto-suave);
+}
+
+.vacio .emoji {
+  font-size: 40px;
+}
+
+button.btn {
+  padding: 8px 15px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: var(--texto);
+}
+
+button.btn.primario {
+  background: var(--azul);
+  color: #fff;
+}
+
+button.btn:hover {
+  opacity: 0.85;
+}
+
+.badge {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 20px;
+  padding: 5px 11px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.debug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  overflow: auto;
+  max-height: 340px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.fila-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
