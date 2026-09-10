@@ -740,6 +740,82 @@ button.mini:hover {
   background: #f2f9fc;
 }
 
+/* ── Semana (centro de mando) ── */
+.sem-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--tarjeta);
+  border-radius: var(--r-card);
+  box-shadow: var(--sombra);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+.sem-titulo {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--texto-fuerte);
+}
+.sem-total {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--azul-osc);
+  text-align: right;
+  line-height: 1;
+}
+.sem-total span {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sem-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.sem-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border-radius: 11px;
+  border-left: 3px solid #e5e7eb;
+  background: #f8fafc;
+  font-size: 13px;
+}
+.sem-fila-col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.sem-fila-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sem-fila-accion {
+  display: flex;
+  gap: 8px;
+}
+.sem-fila-accion .campo-input {
+  flex: 1;
+}
+.sem-txt {
+  flex: 1;
+  min-width: 0;
+}
+.sem-txt strong {
+  color: var(--texto-fuerte);
+}
+.sem-vencido {
+  background: #fdecec;
+  border-left-color: #ef4444;
+}
+
 /* ── Llamadas ── */
 .llamadas-lista {
   display: flex;

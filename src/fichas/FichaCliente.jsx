@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Modal, Campo, Selector, Interruptor, TextArea, Boton, Progreso, Semaforo, EtiquetaEstado, EtiquetaPago, Aviso } from "../components/ui.jsx";
 import { ESTADOS, COLOR_ESTADO } from "../lib/estado.js";
 import { LISTA_MODALIDADES, semanasDeModalidad, calcularCliente } from "../lib/logica.js";
-import { cobrosDeCliente, METODOS_PAGO, ESTADOS_PAGO, marcarLlamadaRenovacion, marcarLlamadaOptimizacion } from "../lib/clientes.js";
+import { cobrosDeCliente, METODOS_PAGO, ESTADOS_PAGO, marcarLlamadaRenovacion, marcarLlamadaOptimizacion, registrarContacto } from "../lib/clientes.js";
 import { fFecha } from "../lib/fechas.js";
 import CobroForm from "../forms/CobroForm.jsx";
 import CarreraForm from "../forms/CarreraForm.jsx";
@@ -65,6 +65,8 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
   const [formCobro, setFormCobro] = useState(null); // { cobro? }  o null
   const [formCarrera, setFormCarrera] = useState(null);
   const [formRenovacion, setFormRenovacion] = useState(false);
+  const [notaAbierta, setNotaAbierta] = useState(false);
+  const [textoNota, setTextoNota] = useState("");
 
   // Si el registro del cliente cambia por debajo (renovación, cambio de estado,
   // renombrado…), el borrador se resincroniza para no arrastrar valores viejos.
@@ -147,6 +149,12 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
         c.id === cliente.id ? { ...c, carreras: (c.carreras || []).filter((r) => r.id !== id) } : c
       ),
     }));
+  };
+
+  const guardarNota = () => {
+    actualizar((d) => registrarContacto(d, cliente.id, { tipo: "Nota", texto: textoNota }));
+    setTextoNota("");
+    setNotaAbierta(false);
   };
 
   const toggleLlamadaRenovacion = () =>
@@ -350,6 +358,49 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
             );
           })}
         </div>
+      </div>
+
+      {/* Registro de contactos */}
+      <div className="ficha-seccion">
+        <div className="ficha-titulo">
+          Registro de contactos
+          <Boton style={{ marginLeft: "auto" }} onClick={() => setNotaAbierta((v) => !v)}>
+            + Nota
+          </Boton>
+        </div>
+        {notaAbierta && (
+          <div className="form-grid" style={{ gridTemplateColumns: "1fr", marginBottom: 10 }}>
+            <TextArea
+              label="¿Qué se habló / acuerdos?"
+              value={textoNota}
+              onChange={setTextoNota}
+              filas={2}
+            />
+            <div className="modal-acciones" style={{ marginTop: 0 }}>
+              <Boton variante="primario" onClick={guardarNota} disabled={!textoNota.trim()}>
+                Guardar nota
+              </Boton>
+              <Boton onClick={() => { setNotaAbierta(false); setTextoNota(""); }}>Cancelar</Boton>
+            </div>
+          </div>
+        )}
+        {(cliente.contactos || []).length === 0 ? (
+          <div className="pista">Sin notas de contacto.</div>
+        ) : (
+          <ul className="lista-simple">
+            {(cliente.contactos || [])
+              .slice()
+              .reverse()
+              .map((n) => (
+                <li key={n.id} style={{ flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
+                  <span className="pista">
+                    {fFecha(n.fecha)} · {n.tipo}
+                  </span>
+                  <span>{n.texto}</span>
+                </li>
+              ))}
+          </ul>
+        )}
       </div>
 
       {/* Renovación */}

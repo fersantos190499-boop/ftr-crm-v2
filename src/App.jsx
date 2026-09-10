@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useStore } from "./lib/store.jsx";
 import { esActivo } from "./lib/estado.js";
 import SyncBadge from "./components/SyncBadge.jsx";
+import SemanaTab from "./tabs/SemanaTab.jsx";
 import InicioTab from "./tabs/InicioTab.jsx";
 import ClientesTab from "./tabs/ClientesTab.jsx";
 import LlamadasTab from "./tabs/LlamadasTab.jsx";
@@ -12,6 +13,7 @@ import DatosTab from "./tabs/DatosTab.jsx";
 import FichaCliente from "./fichas/FichaCliente.jsx";
 
 const TABS = [
+  { id: "semana", label: "Semana" },
   { id: "inicio", label: "Inicio" },
   { id: "clientes", label: "Clientes" },
   { id: "llamadas", label: "Llamadas" },
@@ -22,7 +24,7 @@ const TABS = [
 
 export default function App() {
   const { data, actualizar, listo, sync, ultimaSync, sincronizarAhora, exportar, importar } = useStore();
-  const [tab, setTab] = useState("inicio");
+  const [tab, setTab] = useState("semana");
   const [fichaId, setFichaId] = useState(null);
 
   if (!listo) {
@@ -82,6 +84,7 @@ export default function App() {
       </header>
 
       <main className="contenedor" style={{ paddingTop: 20, paddingBottom: 60 }}>
+        {tab === "semana" && <SemanaTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
         {tab === "inicio" && <InicioTab doc={data} irATab={setTab} abrirFicha={abrirFicha} />}
         {tab === "clientes" && <ClientesTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
         {tab === "llamadas" && <LlamadasTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}

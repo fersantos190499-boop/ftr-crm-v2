@@ -156,6 +156,30 @@ export function marcarLlamadaOptimizacion(doc, clienteId, semana, hecha) {
   };
 }
 
+// ── Tareas de la agenda semanal (checklist) ──────
+export function marcarTarea(doc, clave, hecha = true) {
+  const tareas = { ...(doc.tareas || {}) };
+  if (hecha) tareas[clave] = { hecha: true, fecha: ahora().slice(0, 10) };
+  else delete tareas[clave];
+  return { ...doc, tareas };
+}
+
+// ── Registro de contacto (nota de llamada con fecha) ──
+export function registrarContacto(doc, clienteId, { tipo, texto }) {
+  if (!texto || !texto.trim()) return doc;
+  return {
+    ...doc,
+    clientes: doc.clientes.map((c) => {
+      if (c.id !== clienteId) return c;
+      const contactos = Array.isArray(c.contactos) ? c.contactos : [];
+      return {
+        ...c,
+        contactos: [...contactos, { id: idNuevo(), fecha: ahora().slice(0, 10), tipo: tipo || "nota", texto: texto.trim() }],
+      };
+    }),
+  };
+}
+
 // ── Selectores ───────────────────────────────────
 export const cobrosDeCliente = (doc, clienteId) =>
   (doc.cobros || []).filter((c) => c.clienteId === clienteId);

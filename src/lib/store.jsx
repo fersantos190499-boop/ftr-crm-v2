@@ -8,7 +8,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cargar, guardar } from "./supabase.js";
 
-export const DOCUMENTO_VACIO = { clientes: [], cobros: [], meta: { version: 1 } };
+export const DOCUMENTO_VACIO = { clientes: [], cobros: [], tareas: {}, meta: { version: 1 } };
 
 export const SYNC = {
   INICIAL: "inicial",
@@ -24,6 +24,7 @@ function normaliza(d) {
   return {
     clientes: Array.isArray(d?.clientes) ? d.clientes : [],
     cobros: Array.isArray(d?.cobros) ? d.cobros : [],
+    tareas: d && typeof d.tareas === "object" && d.tareas ? d.tareas : {},
     meta: { version: 1, ...(d && typeof d.meta === "object" ? d.meta : {}) },
   };
 }
