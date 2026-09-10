@@ -82,9 +82,11 @@ export default function ClientesTab({ doc, actualizar, abrirFicha }) {
                   {c.numRenovaciones ? ` · R${c.numRenovaciones}` : ""}
                 </div>
               </div>
-              <EtiquetaEstado estado={c.estado} />
-              <Semaforo semaforo={d.semaforo} diasRestantes={d.diasRestantes} />
-              <div className="fc-importe">{c.importe} €</div>
+              <div className="fc-meta">
+                <EtiquetaEstado estado={c.estado} />
+                <Semaforo semaforo={d.semaforo} diasRestantes={d.diasRestantes} />
+                <span className="fc-importe">{c.importe} €</span>
+              </div>
               <div className="fc-flecha">›</div>
             </button>
           ))}

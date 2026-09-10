@@ -231,6 +231,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
         {cobros.length === 0 ? (
           <div className="pista">Sin cobros registrados.</div>
         ) : (
+          <div className="tabla-scroll">
           <table className="tabla">
             <thead>
               <tr>
@@ -271,6 +272,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
               </tr>
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

@@ -9,8 +9,10 @@ function Kpi({ etiqueta, valor, sub }) {
   return (
     <div className="kpi">
       <div className="kpi-valor">{valor}</div>
-      <div className="kpi-etiqueta">{etiqueta}</div>
-      {sub && <div className="pista">{sub}</div>}
+      <div className="kpi-cuerpo">
+        <div className="kpi-etiqueta">{etiqueta}</div>
+        {sub && <div className="pista">{sub}</div>}
+      </div>
     </div>
   );
 }

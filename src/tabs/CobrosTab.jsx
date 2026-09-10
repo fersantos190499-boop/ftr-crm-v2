@@ -76,6 +76,7 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
                 {m.totalPendiente > 0 ? ` · ${m.totalPendiente} € pendiente` : ""}
               </span>
             </h3>
+            <div className="tabla-scroll">
             <table className="tabla">
               <thead>
                 <tr>
@@ -113,6 +114,7 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
                 ))}
               </tbody>
             </table>
+            </div>
           </section>
         ))
       )}

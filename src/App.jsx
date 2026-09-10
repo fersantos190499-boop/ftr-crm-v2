@@ -22,7 +22,7 @@ const TABS = [
 
 export default function App() {
   const { data, actualizar, listo, sync, ultimaSync, sincronizarAhora, exportar, importar } = useStore();
-  const [tab, setTab] = useState("clientes");
+  const [tab, setTab] = useState("inicio");
   const [fichaId, setFichaId] = useState(null);
 
   if (!listo) {
@@ -45,8 +45,8 @@ export default function App() {
           <div className="marca">
             <span className="logo">🏃</span>
             <div>
-              <div style={{ fontSize: 15 }}>FUEL TO RUN</div>
-              <div style={{ fontSize: 10, opacity: 0.75, fontWeight: 400 }}>{activos} activos</div>
+              <div className="marca-nombre">FUEL TO RUN</div>
+              <div className="marca-sub">{activos} clientes activos</div>
             </div>
           </div>
           <SyncBadge sync={sync} ultimaSync={ultimaSync} onSincronizar={sincronizarAhora} />
