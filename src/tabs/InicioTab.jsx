@@ -119,6 +119,27 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
         )}
       </section>
 
+      {/* Revisión mensual esta semana */}
+      {p.revisionMensual.length > 0 && (
+        <section className="bloque">
+          <h3 className="bloque-titulo">
+            📋 Revisión mensual esta semana <span className="cuenta">{p.revisionMensual.length}</span>
+          </h3>
+          <div className="lista-simple">
+            {p.revisionMensual.map(({ cliente, d }) => (
+              <div className="fila-llamada" key={cliente.id}>
+                <button className="enlace" onClick={() => abrirFicha(cliente.id)}>
+                  <strong>{cliente.nombre}</strong>
+                </button>
+                <span className="pista">
+                  sem {d.semanaPrograma}/{cliente.semanasTotal} · {cliente.modalidad}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Renovaciones del mes */}
       {p.renovacionesMes.length > 0 && (
         <section className="bloque">

@@ -8,6 +8,14 @@ export const METODOS_PAGO = ["Stripe", "PayPal", "Bizum", "Efectivo"];
 export const ESTADOS_PAGO = ["Pagado", "Pendiente"];
 export const ESTADOS_COBRO = ["Cobrado", "Pendiente"];
 
+// Color por método de pago: [fondo, texto].
+export const COLOR_METODO = {
+  Stripe: ["#efe9fe", "#6d28d9"],
+  PayPal: ["#e0edfe", "#1e40af"],
+  Bizum: ["#e4f7ea", "#15803d"],
+  Efectivo: ["#fdf3d6", "#854d0e"],
+};
+
 function idNuevo() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);

@@ -712,6 +712,256 @@ button.mini:hover {
   font-weight: 700;
   color: var(--texto-fuerte);
 }
+.cuenta {
+  background: #e6ebf0;
+  color: var(--texto-suave);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.bloque-alerta {
+  border: 1px solid #f3d0d0;
+  background: #fef7f7;
+}
+.bloque-agendar {
+  border: 1px solid #cfe6ef;
+  background: #f2f9fc;
+}
+
+/* ── Llamadas ── */
+.llamadas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.llamada {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  border-left: 3px solid #d1d5db;
+  background: #f8fafc;
+}
+.llamada-renov {
+  background: #fdecec;
+  border-left-color: #ef4444;
+}
+.llamada-optim {
+  background: #fdf4e3;
+  border-left-color: #f59e0b;
+}
+.llamada-plana {
+  background: #f8fafc;
+  border-left-color: #e5e7eb;
+}
+.llamada-ico {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.llamada-txt {
+  flex: 1;
+  min-width: 0;
+}
+.llamada-txt .enlace {
+  text-decoration: none;
+  color: var(--texto-fuerte);
+}
+.llamada-txt .enlace:hover {
+  text-decoration: underline;
+}
+.t-renov {
+  color: #b91c1c;
+}
+.t-optim {
+  color: #b45309;
+}
+.llamada-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.b-renov {
+  background: #ef4444;
+}
+.b-optim {
+  background: #f59e0b;
+}
+
+/* ── Insignia circular de días (carreras) ── */
+.badge-dias {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.badge-dias strong {
+  font-size: 17px;
+  font-weight: 700;
+}
+.badge-dias span {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+/* ── Rejilla de tarjetas de carrera ── */
+.carreras-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+  gap: 12px;
+}
+.carrera-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--r-card);
+  padding: 14px 15px;
+  box-shadow: var(--sombra);
+}
+.carrera-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+}
+.carrera-info .enlace {
+  text-decoration: none;
+  color: var(--texto-fuerte);
+  font-size: 13.5px;
+}
+.carrera-nombre {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--azul-osc);
+}
+.mini-enlace {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 2px 0 0;
+  margin-top: 3px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+.mini-enlace:hover {
+  color: var(--azul-osc);
+}
+
+/* ── Stats de Cobros ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.stat {
+  background: var(--tarjeta);
+  border-radius: var(--r-card);
+  box-shadow: var(--sombra);
+  padding: 14px 16px;
+  border-left: 4px solid var(--azul);
+}
+.stat-azul {
+  border-left-color: #5ba5c0;
+}
+.stat-verde {
+  border-left-color: #22c55e;
+}
+.stat-violeta {
+  border-left-color: #8b5cf6;
+}
+.stat-ambar {
+  border-left-color: #f59e0b;
+}
+.stat-valor {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--texto-fuerte);
+  line-height: 1.1;
+}
+.stat-azul .stat-valor {
+  color: #256780;
+}
+.stat-verde .stat-valor {
+  color: #15803d;
+}
+.stat-violeta .stat-valor {
+  color: #6d28d9;
+}
+.stat-ambar .stat-valor {
+  color: #b45309;
+}
+.stat-etiqueta {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--texto);
+  margin-top: 4px;
+}
+
+.filtros-cobros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.td-importe {
+  font-weight: 700;
+  color: var(--azul-osc);
+  white-space: nowrap;
+}
+
+/* ── Gráfica ── */
+.grafica-wrap {
+  position: relative;
+  width: 100%;
+}
+.grafica {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.grafica-eje {
+  font-size: 9px;
+  fill: var(--texto-suave);
+}
+.grafica-tip {
+  position: absolute;
+  top: -4px;
+  transform: translate(-50%, -100%);
+  background: #0f172a;
+  color: #fff;
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.grafica-tip span {
+  opacity: 0.7;
+  font-size: 10px;
+}
 .enlace {
   background: none;
   border: none;
@@ -813,6 +1063,32 @@ button.mini:hover {
   /* alertas: una por fila */
   .alertas-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* stats de cobros: 2 x 2 */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-valor {
+    font-size: 18px;
+  }
+
+  /* llamadas: badge y botón bajan si no caben */
+  .llamada {
+    flex-wrap: wrap;
+  }
+  .llamada > button.btn {
+    flex: 1;
+    order: 3;
+  }
+  .llamada-badge {
+    order: 2;
+  }
+
+  .filtros-cobros .campo-input {
+    max-width: none !important;
+    flex: 1 1 140px;
   }
 
   .resumen {

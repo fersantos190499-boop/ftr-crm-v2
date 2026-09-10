@@ -1,6 +1,7 @@
 // ─── COMPONENTES DE INTERFAZ REUTILIZABLES ────────
 import { useEffect } from "react";
-import { COLOR_ESTADO, COLOR_SEMAFORO } from "../lib/estado.js";
+import { COLOR_ESTADO, COLOR_SEMAFORO, urgenciaPorDias } from "../lib/estado.js";
+import { COLOR_METODO } from "../lib/clientes.js";
 
 export function Boton({ children, onClick, variante = "normal", type = "button", disabled, style }) {
   return (
@@ -68,6 +69,27 @@ export function EtiquetaPago({ estado }) {
     >
       <span className="pill-punto" style={{ background: cobrado ? "#22c55e" : "#f59e0b" }} />
       {estado}
+    </span>
+  );
+}
+
+// Etiqueta de método de pago con su color.
+export function EtiquetaMetodo({ metodo }) {
+  const [bg, fg] = COLOR_METODO[metodo] || ["#eef1f4", "#374151"];
+  return (
+    <span className="pill" style={{ background: bg, color: fg }}>
+      {metodo}
+    </span>
+  );
+}
+
+// Insignia circular de "N días" coloreada por urgencia.
+export function BadgeDias({ dias }) {
+  const [bg, fg] = COLOR_SEMAFORO[urgenciaPorDias(dias)];
+  return (
+    <span className="badge-dias" style={{ background: bg, color: fg }}>
+      <strong>{dias}</strong>
+      <span>días</span>
     </span>
   );
 }

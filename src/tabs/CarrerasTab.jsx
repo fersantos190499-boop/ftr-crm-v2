@@ -1,33 +1,31 @@
 // ─── PESTAÑA CARRERAS ─────────────────────────────
-// Todas las carreras de todos los clientes, ordenadas por fecha.
+// Todas las carreras de todos los clientes, en tarjetas, ordenadas por fecha.
 
 import { useState } from "react";
 import { carreras } from "../lib/consultas.js";
+import { calcularCliente } from "../lib/logica.js";
 import { fFecha } from "../lib/fechas.js";
-import { Boton } from "../components/ui.jsx";
+import { Boton, BadgeDias } from "../components/ui.jsx";
 import CarreraForm from "../forms/CarreraForm.jsx";
 
-function FilaCarrera({ f, abrirFicha, onEditar, onBorrar }) {
+function TarjetaCarrera({ f, cliente, abrirFicha, onEditar }) {
+  const d = cliente ? calcularCliente(cliente) : null;
   return (
-    <div className="fila-llamada">
-      <span>
-        <strong>{fFecha(f.fecha)}</strong> · {f.nombre}
-        {" — "}
+    <div className="carrera-card">
+      <div className="carrera-info">
         <button className="enlace" onClick={() => abrirFicha(f.clienteId)}>
-          {f.clienteNombre}
+          <strong>{f.clienteNombre}</strong>
         </button>
-        {f.diasRestantes != null && f.diasRestantes >= 0 && (
-          <span className="pista"> · faltan {f.diasRestantes} días</span>
-        )}
-      </span>
-      <span style={{ whiteSpace: "nowrap" }}>
-        <button className="mini" onClick={onEditar}>
-          ✏️
+        <div className="carrera-nombre">🏁 {f.nombre}</div>
+        <div className="pista">
+          {fFecha(f.fecha)}
+          {d ? ` · sem ${d.semanaPrograma}/${cliente.semanasTotal} · ${cliente.modalidad}` : ""}
+        </div>
+        <button className="mini-enlace" onClick={onEditar}>
+          ✏️ Editar
         </button>
-        <button className="mini" onClick={onBorrar}>
-          🗑️
-        </button>
-      </span>
+      </div>
+      <BadgeDias dias={f.diasRestantes} />
     </div>
   );
 }
@@ -35,17 +33,8 @@ function FilaCarrera({ f, abrirFicha, onEditar, onBorrar }) {
 export default function CarrerasTab({ doc, actualizar, abrirFicha }) {
   const { proximas, pasadas } = carreras(doc);
   const [verPasadas, setVerPasadas] = useState(false);
-  const [form, setForm] = useState(null); // { carrera? } | null
-
-  const borrar = (f) => {
-    if (!window.confirm(`¿Eliminar la carrera «${f.nombre}» de ${f.clienteNombre}?`)) return;
-    actualizar((d) => ({
-      ...d,
-      clientes: d.clientes.map((c) =>
-        c.id === f.clienteId ? { ...c, carreras: (c.carreras || []).filter((r) => r.id !== f.id) } : c
-      ),
-    }));
-  };
+  const [form, setForm] = useState(null);
+  const porId = Object.fromEntries(doc.clientes.map((c) => [c.id, c]));
 
   return (
     <div>
@@ -56,18 +45,20 @@ export default function CarrerasTab({ doc, actualizar, abrirFicha }) {
       </div>
 
       <section className="bloque">
-        <h3 className="bloque-titulo">🏁 Próximas ({proximas.length})</h3>
+        <h3 className="bloque-titulo">
+          🏁 Próximas <span className="cuenta">{proximas.length}</span>
+        </h3>
         {proximas.length === 0 ? (
           <div className="pista">No hay carreras próximas.</div>
         ) : (
-          <div className="lista-simple">
+          <div className="carreras-grid">
             {proximas.map((f) => (
-              <FilaCarrera
+              <TarjetaCarrera
                 key={f.id}
                 f={f}
+                cliente={porId[f.clienteId]}
                 abrirFicha={abrirFicha}
                 onEditar={() => setForm({ carrera: f })}
-                onBorrar={() => borrar(f)}
               />
             ))}
           </div>
@@ -82,15 +73,19 @@ export default function CarrerasTab({ doc, actualizar, abrirFicha }) {
             </button>
           </h3>
           {verPasadas && (
-            <div className="lista-simple">
+            <div className="llamadas-lista">
               {pasadas.map((f) => (
-                <FilaCarrera
-                  key={f.id}
-                  f={f}
-                  abrirFicha={abrirFicha}
-                  onEditar={() => setForm({ carrera: f })}
-                  onBorrar={() => borrar(f)}
-                />
+                <div className="llamada llamada-plana" key={f.id}>
+                  <div className="llamada-txt">
+                    <button className="enlace" onClick={() => abrirFicha(f.clienteId)}>
+                      <strong>{f.nombre}</strong> · {f.clienteNombre}
+                    </button>
+                  </div>
+                  <span className="pista">{fFecha(f.fecha)}</span>
+                  <button className="mini" onClick={() => setForm({ carrera: f })}>
+                    ✏️
+                  </button>
+                </div>
               ))}
             </div>
           )}

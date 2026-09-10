@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { llamadas, carreras, cobrosPorMes, mapaNombres } from "../lib/consultas.js";
+import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos } from "../lib/consultas.js";
 import { marcarLlamadaRenovacion, marcarLlamadaOptimizacion, nuevoCliente } from "../lib/clientes.js";
 import { isoADias, diasAIso } from "../lib/fechas.js";
 
@@ -54,6 +54,23 @@ describe("llamadas()", () => {
     expect(r.pendientesRenov).toHaveLength(0);
     expect(r.proximas.some((p) => p.tipo === "renovacion" && p.faltan === 2)).toBe(true);
   });
+
+  it("'agendar para la semana que viene' = la llamada toca justo la semana siguiente", () => {
+    // 3 meses, optimización en la semana global 6. Arranca hace 4*7+3=31 días → semana 5 → la 6 es la que viene.
+    const c = nuevoCliente({ nombre: "Isabel", modalidad: "3 meses", fechaInicio: diasAIso(HOY - 31), importe: 347 });
+    const r = llamadas({ clientes: [c], cobros: [] }, HOY);
+    expect(r.semanaQueViene.some((x) => x.tipo === "optimizacion" && x.semana === 6)).toBe(true);
+    expect(r.pendientes.some((x) => x.semana === 6)).toBe(false);
+  });
+
+  it("revisión mensual = clientes cuya semana de programa es múltiplo de 4", () => {
+    // semana 8 (8*7 - 3 días para asegurar semana 8): floor(53/7)+1 = 8
+    const c8 = nuevoCliente({ nombre: "Mult8", modalidad: "6 meses", fechaInicio: diasAIso(HOY - 53), importe: 597 });
+    // semana 5 → NO
+    const c5 = nuevoCliente({ nombre: "Sem5", modalidad: "6 meses", fechaInicio: diasAIso(HOY - 31), importe: 597 });
+    const r = llamadas({ clientes: [c8, c5], cobros: [] }, HOY);
+    expect(r.revisionMensual.map((x) => x.cliente.nombre)).toEqual(["Mult8"]);
+  });
 });
 
 describe("carreras()", () => {
@@ -105,6 +122,25 @@ describe("cobrosPorMes()", () => {
 describe("mapaNombres()", () => {
   it("id → nombre", () => {
     expect(mapaNombres({ clientes: [{ id: "x", nombre: "Zoe" }] })).toEqual({ x: "Zoe" });
+  });
+});
+
+describe("serieIngresos()", () => {
+  const doc = {
+    clientes: [],
+    cobros: [
+      { id: "a", fechaPago: "2026-09-05", importe: 300, estado: "Cobrado" },
+      { id: "b", fechaPago: "2026-09-20", importe: 200, estado: "Cobrado" },
+      { id: "c", fechaPago: "2026-08-10", importe: 100, estado: "Cobrado" },
+      { id: "d", fechaPago: "2026-09-25", importe: 999, estado: "Pendiente" }, // no cuenta
+    ],
+  };
+  it("últimos n meses, solo cobros 'Cobrado', sumados por mes", () => {
+    const s = serieIngresos(doc, HOY, 3);
+    expect(s.map((x) => x.mes)).toEqual(["2026-07", "2026-08", "2026-09"]);
+    expect(s.find((x) => x.mes === "2026-09").total).toBe(500);
+    expect(s.find((x) => x.mes === "2026-08").total).toBe(100);
+    expect(s.find((x) => x.mes === "2026-07").total).toBe(0);
   });
 });
 

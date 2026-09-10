@@ -1,23 +1,31 @@
 // ─── PESTAÑA LLAMADAS ─────────────────────────────
-// Todas las llamadas de renovación y optimización pendientes (y las próximas),
-// de todos los clientes activos. Botón para marcarlas hechas.
+// Qué hay que hacer y qué hay que agendar, por prioridad.
 
 import { llamadas } from "../lib/consultas.js";
 import { marcarLlamadaRenovacion, marcarLlamadaOptimizacion } from "../lib/clientes.js";
 import { Boton } from "../components/ui.jsx";
 
-function Fila({ item, abrirFicha, onHecha }) {
+function badge(item) {
+  return item.ambito === "global" ? `SG${item.semana}` : `S${item.semana}`;
+}
+
+function FilaLlamada({ item, abrirFicha, onHecha }) {
   const esRen = item.tipo === "renovacion";
   return (
-    <div className="fila-llamada">
-      <button className="enlace" onClick={() => abrirFicha(item.cliente.id)}>
-        {esRen ? "🔔" : "📞"} <strong>{item.cliente.nombre}</strong>
-        <span className="pista">
-          {" "}
-          · {esRen ? `renovación (semana ${item.semana})` : `optimización (semana global ${item.semana})`}
-          {item.faltan != null ? ` · en ${item.faltan} sem.` : ""}
-        </span>
-      </button>
+    <div className={`llamada ${esRen ? "llamada-renov" : "llamada-optim"}`}>
+      <span className="llamada-ico">{esRen ? "🔔" : "📞"}</span>
+      <div className="llamada-txt">
+        <button className="enlace" onClick={() => abrirFicha(item.cliente.id)}>
+          <strong className={esRen ? "t-renov" : "t-optim"}>
+            {esRen ? "Renovación" : "Optimización"}
+          </strong>{" "}
+          · {item.cliente.nombre}
+        </button>
+        <div className="pista">
+          {item.cliente.modalidad} · sem {item.d.semanaPrograma}/{item.cliente.semanasTotal}
+        </div>
+      </div>
+      <span className={`llamada-badge ${esRen ? "b-renov" : "b-optim"}`}>{badge(item)}</span>
       {onHecha && (
         <Boton variante="primario" onClick={onHecha}>
           Marcar hecha
@@ -28,45 +36,83 @@ function Fila({ item, abrirFicha, onHecha }) {
 }
 
 export default function LlamadasTab({ doc, actualizar, abrirFicha }) {
-  const { pendientesRenov, pendientesOptim, proximas } = llamadas(doc);
-  const nada = !pendientesRenov.length && !pendientesOptim.length && !proximas.length;
+  const { pendientes, semanaQueViene, proximas, revisionMensual } = llamadas(doc);
+  const marcar = (item) =>
+    actualizar((d) =>
+      item.tipo === "renovacion"
+        ? marcarLlamadaRenovacion(d, item.cliente.id, true)
+        : marcarLlamadaOptimizacion(d, item.cliente.id, item.semana, true)
+    );
 
-  const marcarRen = (id) => actualizar((d) => marcarLlamadaRenovacion(d, id, true));
-  const marcarOpt = (id, semana) => actualizar((d) => marcarLlamadaOptimizacion(d, id, semana, true));
+  const vacio =
+    !pendientes.length && !semanaQueViene.length && !proximas.length && !revisionMensual.length;
 
-  if (nada) {
+  if (vacio) {
     return (
       <div className="vacio">
         <div className="emoji">✅</div>
-        <p>No hay llamadas pendientes ni próximas.</p>
+        <p>Nada pendiente ni previsto. Todo al día.</p>
       </div>
     );
   }
 
   return (
     <div>
-      {pendientesRenov.length > 0 && (
-        <section className="bloque">
-          <h3 className="bloque-titulo">🔔 Renovación · pendientes ({pendientesRenov.length})</h3>
-          <div className="lista-simple">
-            {pendientesRenov.map((it) => (
-              <Fila key={it.cliente.id} item={it} abrirFicha={abrirFicha} onHecha={() => marcarRen(it.cliente.id)} />
+      {pendientes.length > 0 && (
+        <section className="bloque bloque-alerta">
+          <h3 className="bloque-titulo">
+            🔴 Llamadas pendientes <span className="cuenta">{pendientes.length}</span>
+          </h3>
+          <div className="llamadas-lista">
+            {pendientes.map((it) => (
+              <FilaLlamada
+                key={`${it.cliente.id}-${it.tipo}-${it.semana}`}
+                item={it}
+                abrirFicha={abrirFicha}
+                onHecha={() => marcar(it)}
+              />
             ))}
           </div>
         </section>
       )}
 
-      {pendientesOptim.length > 0 && (
-        <section className="bloque">
-          <h3 className="bloque-titulo">📞 Optimización · pendientes ({pendientesOptim.length})</h3>
-          <div className="lista-simple">
-            {pendientesOptim.map((it) => (
-              <Fila
-                key={`${it.cliente.id}-${it.semana}`}
+      {semanaQueViene.length > 0 && (
+        <section className="bloque bloque-agendar">
+          <h3 className="bloque-titulo">
+            ⏰ Agendar para la semana que viene <span className="cuenta">{semanaQueViene.length}</span>
+          </h3>
+          <p className="pista" style={{ marginTop: -6, marginBottom: 10 }}>
+            Estas llamadas tocan la semana que viene: agéndalas ya.
+          </p>
+          <div className="llamadas-lista">
+            {semanaQueViene.map((it) => (
+              <FilaLlamada
+                key={`${it.cliente.id}-${it.tipo}-${it.semana}`}
                 item={it}
                 abrirFicha={abrirFicha}
-                onHecha={() => marcarOpt(it.cliente.id, it.semana)}
               />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {revisionMensual.length > 0 && (
+        <section className="bloque">
+          <h3 className="bloque-titulo">
+            📋 Revisión mensual esta semana <span className="cuenta">{revisionMensual.length}</span>
+          </h3>
+          <div className="llamadas-lista">
+            {revisionMensual.map(({ cliente, d }) => (
+              <div className="llamada llamada-plana" key={cliente.id}>
+                <div className="llamada-txt">
+                  <button className="enlace" onClick={() => abrirFicha(cliente.id)}>
+                    <strong>{cliente.nombre}</strong>
+                  </button>
+                </div>
+                <span className="pista">
+                  sem {d.semanaPrograma}/{cliente.semanasTotal} · {cliente.modalidad}
+                </span>
+              </div>
             ))}
           </div>
         </section>
@@ -74,10 +120,20 @@ export default function LlamadasTab({ doc, actualizar, abrirFicha }) {
 
       {proximas.length > 0 && (
         <section className="bloque">
-          <h3 className="bloque-titulo">🗓️ Próximas (en 3 semanas o menos)</h3>
-          <div className="lista-simple">
+          <h3 className="bloque-titulo">
+            🗓️ Próximas (2-3 semanas) <span className="cuenta">{proximas.length}</span>
+          </h3>
+          <div className="llamadas-lista">
             {proximas.map((it) => (
-              <Fila key={`${it.cliente.id}-${it.tipo}-${it.semana}`} item={it} abrirFicha={abrirFicha} />
+              <div className="llamada llamada-plana" key={`${it.cliente.id}-${it.tipo}-${it.semana}`}>
+                <span className="llamada-ico">{it.tipo === "renovacion" ? "🔔" : "📞"}</span>
+                <div className="llamada-txt">
+                  <button className="enlace" onClick={() => abrirFicha(it.cliente.id)}>
+                    {it.tipo === "renovacion" ? "Renovación" : "Optimización"} · {it.cliente.nombre}
+                  </button>
+                </div>
+                <span className="pista">en {it.faltan} semanas</span>
+              </div>
             ))}
           </div>
         </section>

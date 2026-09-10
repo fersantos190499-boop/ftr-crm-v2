@@ -15,9 +15,10 @@ export function mapaNombres(doc) {
 // ── Llamadas ─────────────────────────────────────
 // Pendiente = ya toca y no está marcada como hecha. Solo clientes activos.
 export function llamadas(doc, hoy = hoyDias()) {
-  const pendientesRenov = [];
-  const pendientesOptim = [];
-  const proximas = [];
+  const pendientes = []; // ya tocaban y sin hacer
+  const semanaQueViene = []; // toca la semana que viene → hay que agendar ya
+  const proximas = []; // en 2-3 semanas
+  const revisionMensual = []; // esta semana cumplen semana múltiplo de 4
 
   for (const c of doc.clientes || []) {
     if (!esActivo(c)) continue;
@@ -25,33 +26,44 @@ export function llamadas(doc, hoy = hoyDias()) {
 
     // Renovación
     if (!c.llamadaRenovacion?.hecha) {
-      if (d.semanaPrograma >= d.semanaRenovacion) {
-        pendientesRenov.push({ cliente: c, d, tipo: "renovacion", semana: d.semanaRenovacion });
-      } else if (d.semanaRenovacion - d.semanaPrograma <= 3) {
-        proximas.push({
-          cliente: c,
-          d,
-          tipo: "renovacion",
-          semana: d.semanaRenovacion,
-          faltan: d.semanaRenovacion - d.semanaPrograma,
-        });
-      }
+      const falta = d.semanaRenovacion - d.semanaPrograma;
+      const fila = { cliente: c, d, tipo: "renovacion", semana: d.semanaRenovacion, ambito: "local" };
+      if (falta <= 0) pendientes.push(fila);
+      else if (falta === 1) semanaQueViene.push(fila);
+      else if (falta <= 3) proximas.push({ ...fila, faltan: falta });
     }
 
     // Optimización
     for (const w of d.semanasOptimizacion) {
-      const hecha = c.llamadasOptimizacion?.[w]?.hecha;
-      if (hecha) continue;
-      if (w <= d.semanaGlobal) {
-        pendientesOptim.push({ cliente: c, d, tipo: "optimizacion", semana: w });
-      } else if (w - d.semanaGlobal <= 3) {
-        proximas.push({ cliente: c, d, tipo: "optimizacion", semana: w, faltan: w - d.semanaGlobal });
-      }
+      if (c.llamadasOptimizacion?.[w]?.hecha) continue;
+      const falta = w - d.semanaGlobal;
+      const fila = { cliente: c, d, tipo: "optimizacion", semana: w, ambito: "global" };
+      if (falta <= 0) pendientes.push(fila);
+      else if (falta === 1) semanaQueViene.push(fila);
+      else if (falta <= 3) proximas.push({ ...fila, faltan: falta });
+    }
+
+    // Revisión mensual (semana de programa múltiplo de 4)
+    if (d.esMensual) {
+      revisionMensual.push({ cliente: c, d, semana: d.semanaPrograma });
     }
   }
 
+  const orden = (a, b) => (a.tipo === b.tipo ? a.semana - b.semana : a.tipo === "renovacion" ? -1 : 1);
+  pendientes.sort(orden);
+  semanaQueViene.sort(orden);
   proximas.sort((a, b) => a.faltan - b.faltan);
-  return { pendientesRenov, pendientesOptim, proximas };
+  revisionMensual.sort((a, b) => a.cliente.nombre.localeCompare(b.cliente.nombre));
+
+  return {
+    pendientes,
+    semanaQueViene,
+    proximas,
+    revisionMensual,
+    // compatibilidad con panelInicio (recuento de pendientes)
+    pendientesRenov: pendientes.filter((x) => x.tipo === "renovacion"),
+    pendientesOptim: pendientes.filter((x) => x.tipo === "optimizacion"),
+  };
 }
 
 // ── Carreras ─────────────────────────────────────
@@ -132,7 +144,7 @@ export function panelInicio(doc, hoy = hoyDias()) {
     .sort((a, b) => String(a.fechaPago).localeCompare(String(b.fechaPago)));
   const totalPendiente = sum(pagosPendientes);
 
-  const { pendientesRenov, pendientesOptim } = llamadas(doc, hoy);
+  const { pendientesRenov, pendientesOptim, revisionMensual } = llamadas(doc, hoy);
   const carrerasProximas = carreras(doc, hoy).proximas.filter((f) => f.diasRestantes <= 30);
 
   return {
@@ -147,6 +159,30 @@ export function panelInicio(doc, hoy = hoyDias()) {
     totalPendiente,
     pendientesRenov,
     pendientesOptim,
+    revisionMensual,
     carrerasProximas,
   };
+}
+
+// ── Serie de ingresos cobrados por mes (para la gráfica) ──
+// Devuelve los últimos `n` meses hasta el actual, con la suma cobrada de cada uno.
+export function serieIngresos(doc, hoy = hoyDias(), n = 8) {
+  const mesActual = diasAIso(hoy).slice(0, 7);
+  let [y, m] = mesActual.split("-").map(Number);
+  const meses = [];
+  for (let i = 0; i < n; i++) {
+    meses.unshift(`${y}-${String(m).padStart(2, "0")}`);
+    m -= 1;
+    if (m === 0) {
+      m = 12;
+      y -= 1;
+    }
+  }
+  const porMes = {};
+  for (const c of doc.cobros || []) {
+    if (c.estado !== "Cobrado") continue;
+    const k = claveMes(c.fechaPago);
+    if (k) porMes[k] = (porMes[k] || 0) + (Number(c.importe) || 0);
+  }
+  return meses.map((mes) => ({ mes, total: Math.round(porMes[mes] || 0) }));
 }
