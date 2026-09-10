@@ -43,9 +43,24 @@ export default function App() {
       <header className="cabecera">
         <div className="contenedor cab-fila">
           <div className="marca">
-            <span className="logo">🏃</span>
-            <div>
-              <div className="marca-nombre">FUEL TO RUN</div>
+            <span className="logo" aria-hidden="true">
+              <svg viewBox="0 0 32 32" width="21" height="21">
+                <path
+                  d="M5 21 L12 13 L17 17 L27 6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="27" cy="6" r="3" fill="currentColor" />
+                <path d="M5 26 H27" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.45" />
+              </svg>
+            </span>
+            <div className="marca-txt">
+              <div className="marca-nombre">
+                Fuel to Run <span className="marca-crm">CRM</span>
+              </div>
               <div className="marca-sub">{activos} clientes activos</div>
             </div>
           </div>
