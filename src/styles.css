@@ -254,6 +254,26 @@ button.btn:disabled {
   color: var(--texto-suave);
   margin-top: 3px;
 }
+.ficha-nombre {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  font-family: inherit;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  width: 100%;
+  background: transparent;
+}
+.ficha-nombre:hover {
+  border-color: var(--borde);
+}
+.ficha-nombre:focus {
+  border-color: var(--azul);
+  outline: none;
+  background: #fff;
+}
 .modal-x {
   background: #f3f4f6;
   border: none;
