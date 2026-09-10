@@ -123,6 +123,31 @@ function isoDesdeDias(dias) {
   ).padStart(2, "0")}`;
 }
 
+// ── Marcar llamadas (transformaciones puras del documento) ──
+export function marcarLlamadaRenovacion(doc, clienteId, hecha) {
+  const fecha = hecha ? ahora().slice(0, 10) : null;
+  return {
+    ...doc,
+    clientes: doc.clientes.map((c) =>
+      c.id === clienteId ? { ...c, llamadaRenovacion: { hecha, fecha } } : c
+    ),
+  };
+}
+
+export function marcarLlamadaOptimizacion(doc, clienteId, semana, hecha) {
+  const fecha = hecha ? ahora().slice(0, 10) : null;
+  return {
+    ...doc,
+    clientes: doc.clientes.map((c) => {
+      if (c.id !== clienteId) return c;
+      return {
+        ...c,
+        llamadasOptimizacion: { ...(c.llamadasOptimizacion || {}), [semana]: { hecha, fecha } },
+      };
+    }),
+  };
+}
+
 // ── Selectores ───────────────────────────────────
 export const cobrosDeCliente = (doc, clienteId) =>
   (doc.cobros || []).filter((c) => c.clienteId === clienteId);

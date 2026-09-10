@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Modal, Campo, Selector, Interruptor, TextArea, Boton, Barra, Semaforo, EtiquetaEstado, Aviso } from "../components/ui.jsx";
 import { ESTADOS } from "../lib/estado.js";
 import { LISTA_MODALIDADES, semanasDeModalidad, calcularCliente } from "../lib/logica.js";
-import { cobrosDeCliente, METODOS_PAGO, ESTADOS_PAGO } from "../lib/clientes.js";
+import { cobrosDeCliente, METODOS_PAGO, ESTADOS_PAGO, marcarLlamadaRenovacion, marcarLlamadaOptimizacion } from "../lib/clientes.js";
 import { fFecha } from "../lib/fechas.js";
 import CobroForm from "../forms/CobroForm.jsx";
 import CarreraForm from "../forms/CarreraForm.jsx";
@@ -149,34 +149,11 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
     }));
   };
 
-  const toggleLlamadaRenovacion = () => {
-    actualizar((d) => ({
-      ...d,
-      clientes: d.clientes.map((c) => {
-        if (c.id !== cliente.id) return c;
-        const hecha = !c.llamadaRenovacion?.hecha;
-        return { ...c, llamadaRenovacion: { hecha, fecha: hecha ? new Date().toISOString().slice(0, 10) : null } };
-      }),
-    }));
-  };
+  const toggleLlamadaRenovacion = () =>
+    actualizar((d) => marcarLlamadaRenovacion(d, cliente.id, !cliente.llamadaRenovacion?.hecha));
 
-  const toggleOptimizacion = (semana) => {
-    actualizar((d) => ({
-      ...d,
-      clientes: d.clientes.map((c) => {
-        if (c.id !== cliente.id) return c;
-        const prev = c.llamadasOptimizacion || {};
-        const actual = prev[semana]?.hecha;
-        return {
-          ...c,
-          llamadasOptimizacion: {
-            ...prev,
-            [semana]: { hecha: !actual, fecha: !actual ? new Date().toISOString().slice(0, 10) : null },
-          },
-        };
-      }),
-    }));
-  };
+  const toggleOptimizacion = (semana) =>
+    actualizar((d) => marcarLlamadaOptimizacion(d, cliente.id, semana, !cliente.llamadasOptimizacion?.[semana]?.hecha));
 
   const carreras = (cliente.carreras || []).slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
 

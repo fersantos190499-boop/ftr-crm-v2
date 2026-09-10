@@ -4,8 +4,12 @@ import { useStore } from "./lib/store.jsx";
 import { esActivo } from "./lib/estado.js";
 import SyncBadge from "./components/SyncBadge.jsx";
 import ClientesTab from "./tabs/ClientesTab.jsx";
+import LlamadasTab from "./tabs/LlamadasTab.jsx";
+import CarrerasTab from "./tabs/CarrerasTab.jsx";
+import CobrosTab from "./tabs/CobrosTab.jsx";
 import DatosTab from "./tabs/DatosTab.jsx";
 import PlaceholderTab from "./tabs/PlaceholderTab.jsx";
+import FichaCliente from "./fichas/FichaCliente.jsx";
 
 const TABS = [
   { id: "inicio", label: "Inicio" },
@@ -17,9 +21,9 @@ const TABS = [
 ];
 
 export default function App() {
-  const store = useStore();
-  const { data, actualizar, listo, sync, ultimaSync, sincronizarAhora, exportar, importar } = store;
+  const { data, actualizar, listo, sync, ultimaSync, sincronizarAhora, exportar, importar } = useStore();
   const [tab, setTab] = useState("clientes");
+  const [fichaId, setFichaId] = useState(null);
 
   if (!listo) {
     return (
@@ -31,6 +35,8 @@ export default function App() {
   }
 
   const activos = data.clientes.filter(esActivo).length;
+  const fichaCliente = fichaId ? data.clientes.find((c) => c.id === fichaId) : null;
+  const abrirFicha = (id) => setFichaId(id);
 
   return (
     <div>
@@ -40,9 +46,7 @@ export default function App() {
             <span className="logo">🏃</span>
             <div>
               <div style={{ fontSize: 15 }}>FUEL TO RUN</div>
-              <div style={{ fontSize: 10, opacity: 0.75, fontWeight: 400 }}>
-                {activos} activos
-              </div>
+              <div style={{ fontSize: 10, opacity: 0.75, fontWeight: 400 }}>{activos} activos</div>
             </div>
           </div>
           <SyncBadge sync={sync} ultimaSync={ultimaSync} onSincronizar={sincronizarAhora} />
@@ -63,20 +67,24 @@ export default function App() {
       </header>
 
       <main className="contenedor" style={{ paddingTop: 20, paddingBottom: 60 }}>
-        {tab === "clientes" && <ClientesTab doc={data} actualizar={actualizar} />}
+        {tab === "clientes" && <ClientesTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
+        {tab === "llamadas" && <LlamadasTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
+        {tab === "carreras" && <CarrerasTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
+        {tab === "cobros" && <CobrosTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
         {tab === "datos" && (
-          <DatosTab
-            doc={data}
-            exportar={exportar}
-            importar={importar}
-            sincronizarAhora={sincronizarAhora}
-          />
+          <DatosTab doc={data} exportar={exportar} importar={importar} sincronizarAhora={sincronizarAhora} />
         )}
         {tab === "inicio" && <PlaceholderTab nombre="Inicio (panel)" fase={5} />}
-        {tab === "llamadas" && <PlaceholderTab nombre="Llamadas" fase={4} />}
-        {tab === "carreras" && <PlaceholderTab nombre="Carreras" fase={4} />}
-        {tab === "cobros" && <PlaceholderTab nombre="Cobros" fase={4} />}
       </main>
+
+      {fichaCliente && (
+        <FichaCliente
+          cliente={fichaCliente}
+          doc={data}
+          actualizar={actualizar}
+          onCerrar={() => setFichaId(null)}
+        />
+      )}
     </div>
   );
 }
