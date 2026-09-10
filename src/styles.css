@@ -968,6 +968,7 @@ button.mini:hover {
   padding: 0;
   cursor: pointer;
   font: inherit;
+  text-align: left;
   color: var(--azul-osc);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -1074,16 +1075,24 @@ button.mini:hover {
     font-size: 18px;
   }
 
-  /* llamadas: badge y botón bajan si no caben */
+  /* llamadas: texto arriba, botón a ancho completo abajo */
   .llamada {
     flex-wrap: wrap;
+    row-gap: 8px;
   }
-  .llamada > button.btn {
-    flex: 1;
-    order: 3;
+  .llamada-ico {
+    order: 0;
+  }
+  .llamada-txt {
+    order: 1;
+    flex: 1 1 180px;
   }
   .llamada-badge {
     order: 2;
+  }
+  .llamada > button.btn {
+    order: 3;
+    flex: 1 1 100%;
   }
 
   .filtros-cobros .campo-input {
