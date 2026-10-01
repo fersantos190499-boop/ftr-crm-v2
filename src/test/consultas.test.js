@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos, ventas, resumenFacturacion, serieFacturacion, serieComparativa, resumenPeriodo, tasaRenovacion, ltvPorCliente, ltvCliente, ltvMedio } from "../lib/consultas.js";
+import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos, ventas, resumenFacturacion, serieFacturacion, serieComparativa, resumenPeriodo, tasaRenovacion, serieTasaRenovacion, ltvPorCliente, ltvCliente, ltvMedio } from "../lib/consultas.js";
 import { rangoMes } from "../lib/fechas.js";
 import { marcarLlamadaRenovacion, marcarLlamadaOptimizacion, nuevoCliente } from "../lib/clientes.js";
-import { isoADias, diasAIso } from "../lib/fechas.js";
+import { isoADias, diasAIso, claveMes } from "../lib/fechas.js";
 
 const HOY = isoADias("2026-09-10");
 
@@ -407,8 +407,9 @@ describe("tasaRenovacion()", () => {
     expect(r.renovaron).toBe(1); // el alta
     expect(r.noRenovaron).toBe(1); // la renovación, que no tuvo una siguiente
     expect(r.tasa).toBe(50);
+    // finCiclo es cuando ESE ciclo debería haber terminado (fecha + semanasTotal), no cuando empezó
     expect(r.noRenovaronLista).toEqual([
-      { clienteId: "b", clienteNombre: "Se dio de baja", estado: "Finalizado", finCiclo: "2026-04-01" },
+      { clienteId: "b", clienteNombre: "Se dio de baja", estado: "Finalizado", finCiclo: diasAIso(isoADias("2026-04-01") + 12 * 7) },
     ]);
   });
 
@@ -429,6 +430,50 @@ describe("tasaRenovacion()", () => {
   it("un cliente sin historialCiclos no cuenta para nada", () => {
     const doc = { clientes: [{ id: "e", nombre: "Sin ciclos", estado: "Finalizado", historialCiclos: [] }] };
     expect(tasaRenovacion(doc, HOY2)).toEqual({ renovaron: 0, noRenovaron: 0, total: 0, tasa: null, noRenovaronLista: [] });
+  });
+});
+
+describe("serieTasaRenovacion()", () => {
+  const HOY3 = isoADias("2026-10-01");
+  const doc = {
+    clientes: [
+      {
+        id: "r1",
+        nombre: "Renovó en agosto",
+        estado: "Renovado",
+        historialCiclos: [
+          { fecha: "2026-07-01", semanasTotal: 8, motivo: "alta" },
+          { fecha: "2026-08-26", semanasTotal: 8, motivo: "renovacion" }, // sigue en curso, no se evalúa
+        ],
+      },
+      {
+        id: "r2",
+        nombre: "Se dio de baja",
+        estado: "Baja",
+        historialCiclos: [{ fecha: "2026-04-01", semanasTotal: 12, motivo: "alta" }],
+      },
+    ],
+  };
+
+  it("agrupa cada resolución en el mes en que se decidió, no en el que empezó el ciclo", () => {
+    const s = serieTasaRenovacion(doc, HOY3, 6);
+    expect(s.find((x) => x.mes === "2026-08")).toMatchObject({ renovaron: 1, noRenovaron: 0, total: 1, tasa: 100 });
+
+    const mesBaja = claveMes(diasAIso(isoADias("2026-04-01") + 12 * 7));
+    expect(mesBaja).not.toBe("2026-08"); // confirma que no colisiona con el evento de arriba
+    expect(s.find((x) => x.mes === mesBaja)).toMatchObject({ renovaron: 0, noRenovaron: 1, total: 1, tasa: 0 });
+  });
+
+  it("los meses sin ciclos resueltos tienen tasa null", () => {
+    const s = serieTasaRenovacion(doc, HOY3, 6);
+    expect(s.find((x) => x.mes === "2026-07")).toMatchObject({ total: 0, tasa: null });
+  });
+
+  it("la suma de la serie coincide con el total agregado de tasaRenovacion()", () => {
+    const agregado = tasaRenovacion(doc, HOY3);
+    const s = serieTasaRenovacion(doc, HOY3, 12);
+    expect(s.reduce((acc, x) => acc + x.renovaron, 0)).toBe(agregado.renovaron);
+    expect(s.reduce((acc, x) => acc + x.noRenovaron, 0)).toBe(agregado.noRenovaron);
   });
 });
 

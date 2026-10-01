@@ -318,33 +318,47 @@ export function serieComparativa(doc, hoy = hoyDias(), n = 8) {
 // ── Tasa de renovación ────────────────────────────
 // De cada ciclo que YA se ha resuelto (el cliente decidió seguir o no), ¿en
 // cuántos renovó? Un ciclo con otro ciclo detrás en historialCiclos ya
-// renovó, es un hecho. El ÚLTIMO ciclo de cada cliente solo se evalúa cuando
-// ya está resuelto: si el cliente está Finalizado/Baja, no renovó (pase lo
-// que pase con la fecha); si sigue Activo/Renovado, cuenta como renovado solo
-// si su ciclo ya debería haber terminado (si no, sigue en curso y no se
-// evalúa todavía — ni a favor ni en contra).
-export function tasaRenovacion(doc, hoy = hoyDias()) {
-  let renovaron = 0;
-  const noRenovaronLista = [];
+// renovó, es un hecho, y la fecha de esa decisión es cuando empezó el ciclo
+// siguiente (justo cuando terminó el anterior). El ÚLTIMO ciclo de cada
+// cliente solo se evalúa cuando ya está resuelto: si el cliente está
+// Finalizado/Baja, no renovó (pase lo que pase con la fecha) y la decisión se
+// fecha en cuando ese ciclo DEBERÍA haber terminado (fecha + semanasTotal); si
+// sigue Activo/Renovado, cuenta como renovado solo si su ciclo ya debería
+// haber terminado (si no, sigue en curso y no se evalúa todavía).
+function eventosDeRenovacion(doc, hoy) {
+  const eventos = [];
   for (const c of doc.clientes || []) {
     const ciclos = Array.isArray(c.historialCiclos) ? c.historialCiclos : [];
     if (ciclos.length === 0) continue;
     ciclos.forEach((h, i) => {
       if (i < ciclos.length - 1) {
-        renovaron++;
-        return;
-      }
-      if (c.estado === "Finalizado" || c.estado === "Baja") {
-        noRenovaronLista.push({ clienteId: c.id, clienteNombre: c.nombre, estado: c.estado, finCiclo: h.fecha });
+        eventos.push({ clienteId: c.id, clienteNombre: c.nombre, estado: c.estado, fecha: ciclos[i + 1].fecha, renovo: true });
         return;
       }
       const inicio = isoADias(h.fecha);
       const semanas = Number(h.semanasTotal) || 0;
+      const finPrevisto = inicio != null && semanas > 0 ? diasAIso(inicio + semanas * 7) : h.fecha;
+      if (c.estado === "Finalizado" || c.estado === "Baja") {
+        eventos.push({ clienteId: c.id, clienteNombre: c.nombre, estado: c.estado, fecha: finPrevisto, renovo: false });
+        return;
+      }
       if (inicio == null || semanas <= 0) return; // datos incompletos: no se evalúa
-      if (inicio + semanas * 7 <= hoy) renovaron++; // ya tocaba y sigue activo -> cuenta como renovado
+      if (inicio + semanas * 7 <= hoy) {
+        eventos.push({ clienteId: c.id, clienteNombre: c.nombre, estado: c.estado, fecha: finPrevisto, renovo: true });
+      }
       // si aún no ha terminado, el ciclo sigue en curso: no se evalúa todavía
     });
   }
+  return eventos;
+}
+
+export function tasaRenovacion(doc, hoy = hoyDias()) {
+  const eventos = eventosDeRenovacion(doc, hoy);
+  const renovaron = eventos.filter((e) => e.renovo).length;
+  const noRenovaronLista = eventos
+    .filter((e) => !e.renovo)
+    .map((e) => ({ clienteId: e.clienteId, clienteNombre: e.clienteNombre, estado: e.estado, finCiclo: e.fecha }))
+    .sort((a, b) => String(b.finCiclo).localeCompare(String(a.finCiclo)));
   const noRenovaron = noRenovaronLista.length;
   const total = renovaron + noRenovaron;
   return {
@@ -352,8 +366,20 @@ export function tasaRenovacion(doc, hoy = hoyDias()) {
     noRenovaron,
     total,
     tasa: total > 0 ? Math.round((renovaron / total) * 1000) / 10 : null,
-    noRenovaronLista: noRenovaronLista.sort((a, b) => String(b.finCiclo).localeCompare(String(a.finCiclo))),
+    noRenovaronLista,
   };
+}
+
+// Serie mensual de la tasa de renovación: de los ciclos resueltos cada mes,
+// qué % renovó. Mismo criterio de resolución que tasaRenovacion().
+export function serieTasaRenovacion(doc, hoy = hoyDias(), n = 8) {
+  const eventos = eventosDeRenovacion(doc, hoy);
+  return ultimosMeses(hoy, n).map((mes) => {
+    const delMes = eventos.filter((e) => claveMes(e.fecha) === mes);
+    const renovaron = delMes.filter((e) => e.renovo).length;
+    const total = delMes.length;
+    return { mes, renovaron, noRenovaron: total - renovaron, total, tasa: total > 0 ? Math.round((renovaron / total) * 1000) / 10 : null };
+  });
 }
 
 // ── LTV (valor de vida del cliente) ───────────────

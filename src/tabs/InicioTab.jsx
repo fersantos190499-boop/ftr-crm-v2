@@ -1,10 +1,11 @@
 // ─── PESTAÑA INICIO (panel) ───────────────────────
 // El negocio de un vistazo: KPIs, alertas y próximas carreras.
 
-import { panelInicio, tasaRenovacion, ltvMedio } from "../lib/consultas.js";
+import { panelInicio, tasaRenovacion, serieTasaRenovacion, ltvMedio } from "../lib/consultas.js";
 import { fMesAnyo, fFecha } from "../lib/fechas.js";
 import { COLOR_SEMAFORO, urgenciaPorDias } from "../lib/estado.js";
 import Icono from "../components/Icono.jsx";
+import GraficaRetencion from "../components/GraficaRetencion.jsx";
 
 function Kpi({ icono, etiqueta, valor, sub, tono }) {
   return (
@@ -49,6 +50,7 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
   const p = panelInicio(doc);
   const mesTxt = fMesAnyo(`${p.mesActual}-01`);
   const renov = tasaRenovacion(doc);
+  const serieRenov = serieTasaRenovacion(doc);
   const ltv = ltvMedio(doc);
 
   if (doc.clientes.length === 0) {
@@ -148,6 +150,17 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
           </div>
         )}
       </section>
+
+      {/* Retención por mes */}
+      {renov.total > 0 && (
+        <div className="bloque">
+          <h3 className="bloque-titulo">Retención por mes</h3>
+          <p className="pista" style={{ marginTop: -8, marginBottom: 10 }}>
+            De los ciclos que se resolvieron cada mes (el cliente decidió seguir o no), qué % renovó.
+          </p>
+          <GraficaRetencion datos={serieRenov} />
+        </div>
+      )}
 
       {/* Quién no renovó (diagnóstico de retención) */}
       {renov.noRenovaronLista.length > 0 && (
