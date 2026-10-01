@@ -239,6 +239,69 @@ describe("ventas() / resumenFacturacion() / serieFacturacion()", () => {
   });
 });
 
+describe("ventas(): la fecha de facturación es la del primer cobro del ciclo, no fechaInicio", () => {
+  const doc = {
+    clientes: [
+      {
+        id: "jen",
+        nombre: "Jennifer",
+        fechaInicio: "2026-08-25", // el programa "empieza" antes...
+        historialCiclos: [{ fecha: "2026-08-25", modalidad: "6 meses", importe: 696, semanasTotal: 24, motivo: "alta" }],
+      },
+    ],
+    cobros: [
+      // ...pero no paga/contrata la cuota 1 hasta el 30 de septiembre
+      { id: "j1", clienteId: "jen", fechaPago: "2026-09-30", importe: 116, estado: "Cobrado" },
+      { id: "j2", clienteId: "jen", fechaPago: "2026-10-30", importe: 116, estado: "Pendiente" },
+    ],
+  };
+
+  it("usa la fecha del primer cobro (cuota 1) y el importe TOTAL del ciclo, no el de la cuota", () => {
+    const v = ventas(doc);
+    expect(v).toEqual([
+      { clienteId: "jen", clienteNombre: "Jennifer", fecha: "2026-09-30", importe: 696, modalidad: "6 meses", motivo: "alta" },
+    ]);
+  });
+
+  it("las cuotas siguientes del mismo ciclo no generan una venta nueva", () => {
+    // en octubre solo cae la cuota 2, pero la venta ya se reconoció entera en septiembre
+    const r = resumenPeriodo(doc, rangoMes(isoADias("2026-10-15")));
+    expect(r.totalFacturado).toBe(0);
+  });
+
+  it("si el ciclo aún no tiene ningún cobro, se usa fechaInicio como reserva", () => {
+    const sinCobros = { ...doc, cobros: [] };
+    expect(ventas(sinCobros)[0].fecha).toBe("2026-08-25");
+  });
+});
+
+describe("ventas(): separa los cobros de un ciclo antiguo de los del ciclo renovado", () => {
+  const doc = {
+    clientes: [
+      {
+        id: "ang",
+        nombre: "Angelica",
+        historialCiclos: [
+          { fecha: "2026-06-01", modalidad: "3 meses", importe: 347, semanasTotal: 12, motivo: "alta" },
+          { fecha: "2026-09-24", modalidad: "3 meses", importe: 347, semanasTotal: 12, motivo: "renovacion" },
+        ],
+      },
+    ],
+    cobros: [
+      { id: "a1", clienteId: "ang", fechaPago: "2026-06-01", importe: 347, estado: "Cobrado" }, // alta, pago único
+      { id: "a2", clienteId: "ang", fechaPago: "2026-09-24", importe: 347, estado: "Cobrado" }, // renovación, pago único
+    ],
+  };
+
+  it("cada ciclo reconoce su propia venta en la fecha de su propio primer cobro", () => {
+    const v = ventas(doc);
+    expect(v).toEqual([
+      { clienteId: "ang", clienteNombre: "Angelica", fecha: "2026-09-24", importe: 347, modalidad: "3 meses", motivo: "renovacion" },
+      { clienteId: "ang", clienteNombre: "Angelica", fecha: "2026-06-01", importe: 347, modalidad: "3 meses", motivo: "alta" },
+    ]);
+  });
+});
+
 describe("marcarLlamada* (transformaciones puras)", () => {
   it("marcarLlamadaRenovacion no muta el doc original", () => {
     const doc = { clientes: [{ id: "1", llamadaRenovacion: { hecha: false, fecha: null } }], cobros: [] };

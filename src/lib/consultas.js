@@ -193,10 +193,16 @@ export function serieIngresos(doc, hoy = hoyDias(), n = 8) {
 }
 
 // ── Facturación (dinero contratado) ──────────────
-// Cada alta y cada renovación es una "venta": el importe se reconoce en el
-// momento de contratar, haya o no haya entrado ya el cash. Se lee directamente
-// de historialCiclos (que YA registra cada ciclo contratado), nunca de los
-// cobros reales — por eso facturación y caja pueden no coincidir.
+// Cada alta y cada renovación es una "venta": se reconoce el TOTAL
+// contratado de ese ciclo (historialCiclos.importe — nunca el importe de una
+// cuota suelta), haya entrado ya el cash o no. La fecha de la venta es la del
+// PRIMER cobro de ese ciclo (la cuota 1, el "Programa completo" o la
+// "Renovación" — da igual si ya está Cobrado o sigue Pendiente), no la de
+// fechaInicio: así la venta cae en el mes en que de verdad se contrató, que a
+// veces no coincide con el día en que arranca el programa. Si el ciclo aún no
+// tiene ningún cobro registrado, se usa fechaInicio como reserva. Las cuotas
+// 2ª en adelante de un ciclo YA reconocido no vuelven a sumar en facturación
+// (solo entran en caja): por eso facturación y caja pueden no coincidir.
 export function ventas(doc) {
   const out = [];
   for (const c of doc.clientes || []) {
@@ -204,22 +210,37 @@ export function ventas(doc) {
     // traspasados a mano desde el CRM antiguo), se reconstruye su alta a
     // partir de sus propios datos de ciclo actuales, para que nunca falte
     // de la facturación.
-    const ciclos =
+    const ciclos = (
       Array.isArray(c.historialCiclos) && c.historialCiclos.length > 0
         ? c.historialCiclos
         : c.importe
         ? [{ fecha: c.fechaInicio, modalidad: c.modalidad, importe: c.importe, semanasTotal: c.semanasTotal, motivo: "alta" }]
-        : [];
-    for (const h of ciclos) {
+        : []
+    )
+      .slice()
+      .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+
+    const cobrosCliente = (doc.cobros || []).filter((co) => co.clienteId === c.id);
+
+    ciclos.forEach((h, i) => {
+      const inicio = h.fecha;
+      const inicioSiguiente = ciclos[i + 1]?.fecha;
+      const cobrosDelCiclo = cobrosCliente.filter(
+        (co) => String(co.fechaPago) >= String(inicio) && (!inicioSiguiente || String(co.fechaPago) < String(inicioSiguiente))
+      );
+      const primerCobro = cobrosDelCiclo.reduce(
+        (min, co) => (min == null || String(co.fechaPago) < String(min) ? co.fechaPago : min),
+        null
+      );
       out.push({
         clienteId: c.id,
         clienteNombre: c.nombre,
-        fecha: h.fecha,
+        fecha: primerCobro || inicio,
         importe: Number(h.importe) || 0,
         modalidad: h.modalidad,
         motivo: h.motivo === "renovacion" ? "renovacion" : "alta",
       });
-    }
+    });
   }
   return out.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
 }
