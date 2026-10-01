@@ -4,7 +4,7 @@
 
 import { esActivo } from "./estado.js";
 import { calcularCliente } from "./logica.js";
-import { hoyDias, isoADias, diasAIso, claveMes } from "./fechas.js";
+import { hoyDias, isoADias, diasAIso, claveMes, dentroDeRango } from "./fechas.js";
 
 export function mapaNombres(doc) {
   const m = {};
@@ -200,7 +200,17 @@ export function serieIngresos(doc, hoy = hoyDias(), n = 8) {
 export function ventas(doc) {
   const out = [];
   for (const c of doc.clientes || []) {
-    for (const h of c.historialCiclos || []) {
+    // Si por lo que sea un cliente no tiene historialCiclos (p. ej. datos
+    // traspasados a mano desde el CRM antiguo), se reconstruye su alta a
+    // partir de sus propios datos de ciclo actuales, para que nunca falte
+    // de la facturación.
+    const ciclos =
+      Array.isArray(c.historialCiclos) && c.historialCiclos.length > 0
+        ? c.historialCiclos
+        : c.importe
+        ? [{ fecha: c.fechaInicio, modalidad: c.modalidad, importe: c.importe, semanasTotal: c.semanasTotal, motivo: "alta" }]
+        : [];
+    for (const h of ciclos) {
       out.push({
         clienteId: c.id,
         clienteNombre: c.nombre,
@@ -228,6 +238,26 @@ export function resumenFacturacion(doc, hoy = hoyDias()) {
   };
 }
 
+// ── Resumen de facturación + caja acotado a un periodo { desde, hasta } ──
+// (días desde epoch, ambos inclusive; null/null = sin filtro, "todo").
+// Facturación: por fecha del ciclo (alta/renovación). Caja: por fecha de pago
+// de los cobros ya "Cobrado" — son dos recortes de tiempo distintos a propósito
+// (devengo vs. caja), igual que en resumenFacturacion().
+export function resumenPeriodo(doc, { desde = null, hasta = null } = {}) {
+  const v = ventas(doc).filter((x) => dentroDeRango(x.fecha, desde, hasta));
+  const deAltas = v.filter((x) => x.motivo === "alta");
+  const deRenovaciones = v.filter((x) => x.motivo === "renovacion");
+  const cobrado = (doc.cobros || []).filter(
+    (c) => c.estado === "Cobrado" && dentroDeRango(c.fechaPago, desde, hasta)
+  );
+  return {
+    totalAltas: sum(deAltas),
+    totalRenovaciones: sum(deRenovaciones),
+    totalFacturado: sum(v),
+    totalCobrado: sum(cobrado),
+  };
+}
+
 // Serie mensual de facturación separada por alta/renovación (gráfica apilada).
 export function serieFacturacion(doc, hoy = hoyDias(), n = 8) {
   const v = ventas(doc);
@@ -239,4 +269,14 @@ export function serieFacturacion(doc, hoy = hoyDias(), n = 8) {
       renovaciones: Math.round(sum(delMes.filter((x) => x.motivo === "renovacion"))),
     };
   });
+}
+
+// Serie mensual combinada: lo facturado (altas + renovaciones, contratado) junto
+// al cash collected real de ese mismo mes — para comparar de un vistazo cuánto
+// se contrata vs. cuánto entra de verdad.
+export function serieComparativa(doc, hoy = hoyDias(), n = 8) {
+  const fact = serieFacturacion(doc, hoy, n);
+  const cobrado = serieIngresos(doc, hoy, n);
+  const porMes = Object.fromEntries(cobrado.map((x) => [x.mes, x.total]));
+  return fact.map((f) => ({ ...f, cobrado: porMes[f.mes] || 0 }));
 }

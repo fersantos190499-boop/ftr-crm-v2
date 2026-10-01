@@ -14,7 +14,7 @@ import CarrerasTab from "./tabs/CarrerasTab.jsx";
 import CobrosTab from "./tabs/CobrosTab.jsx";
 import DatosTab from "./tabs/DatosTab.jsx";
 import FichaCliente from "./fichas/FichaCliente.jsx";
-import logo from "./assets/logo.png";
+import logo from "./assets/logo-blanco.png";
 
 const TABS = [
   { id: "semana", label: "Semana" },

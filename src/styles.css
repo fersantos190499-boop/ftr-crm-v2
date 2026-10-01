@@ -98,11 +98,9 @@ h4 {
   gap: 11px;
 }
 .marca-logo-img {
-  height: 40px;
+  height: 44px;
   width: auto;
-  border-radius: 9px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 .marca-txt {
   line-height: 1.2;
@@ -1127,6 +1125,9 @@ textarea.campo-input {
   gap: 12px;
   margin-bottom: 14px;
 }
+.stats-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
 .stat {
   padding: 15px 16px;
   border-left: 3px solid var(--brand);
@@ -1267,7 +1268,7 @@ textarea.campo-input {
     padding: 10px 0 8px;
   }
   .marca-logo-img {
-    height: 34px;
+    height: 36px;
   }
   .marca-nombre {
     font-size: 14.5px;

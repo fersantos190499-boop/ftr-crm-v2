@@ -73,4 +73,76 @@ export function claveMes(iso) {
   return typeof iso === "string" && /^\d{4}-\d{2}/.test(iso) ? iso.slice(0, 7) : null;
 }
 
+// ─── RANGOS DE PERIODO (para filtrar facturación/caja) ────
+// Devuelven { desde, hasta } en "días desde epoch" (ambos inclusive).
+// "todo" devuelve null en los dos campos, como señal de "sin filtro".
+
+function finDeMes(y, m) {
+  // día 0 del mes siguiente = último día de este mes
+  const sigY = m === 12 ? y + 1 : y;
+  const sigM = m === 12 ? 1 : m + 1;
+  return isoADias(`${sigY}-${String(sigM).padStart(2, "0")}-01`) - 1;
+}
+
+export function rangoSemana(hoy) {
+  // lunes-domingo. día 0 (1-ene-1970) fue jueves → lunes=0 ... domingo=6
+  const diaSemana = (hoy + 3) % 7;
+  const desde = hoy - diaSemana;
+  return { desde, hasta: desde + 6 };
+}
+
+export function rangoMes(hoy) {
+  const iso = diasAIso(hoy);
+  const [y, m] = iso.split("-").map(Number);
+  return { desde: isoADias(`${y}-${String(m).padStart(2, "0")}-01`), hasta: finDeMes(y, m) };
+}
+
+export function rangoTrimestre(hoy) {
+  const iso = diasAIso(hoy);
+  const [y, m] = iso.split("-").map(Number);
+  const mesInicio = Math.floor((m - 1) / 3) * 3 + 1;
+  const mesFin = mesInicio + 2;
+  return { desde: isoADias(`${y}-${String(mesInicio).padStart(2, "0")}-01`), hasta: finDeMes(y, mesFin) };
+}
+
+export function rangoAnio(hoy) {
+  const y = Number(diasAIso(hoy).slice(0, 4));
+  return { desde: isoADias(`${y}-01-01`), hasta: isoADias(`${y}-12-31`) };
+}
+
+export const PERIODOS = [
+  { id: "todo", etiqueta: "Todo" },
+  { id: "semana", etiqueta: "Esta semana" },
+  { id: "mes", etiqueta: "Este mes" },
+  { id: "trimestre", etiqueta: "Este trimestre" },
+  { id: "anio", etiqueta: "Este año" },
+  { id: "personalizado", etiqueta: "Rango…" },
+];
+
+// tipo: "todo" | "semana" | "mes" | "trimestre" | "anio" | "personalizado".
+// Para "personalizado", desde/hasta llegan ya calculados desde fuera (los
+// inputs de fecha del formulario) y se devuelven tal cual.
+export function rangoPeriodo(tipo, hoy = hoyDias(), personalizado = {}) {
+  switch (tipo) {
+    case "semana":
+      return rangoSemana(hoy);
+    case "mes":
+      return rangoMes(hoy);
+    case "trimestre":
+      return rangoTrimestre(hoy);
+    case "anio":
+      return rangoAnio(hoy);
+    case "personalizado":
+      return { desde: isoADias(personalizado.desde) ?? null, hasta: isoADias(personalizado.hasta) ?? null };
+    default:
+      return { desde: null, hasta: null };
+  }
+}
+
+export function dentroDeRango(iso, desde, hasta) {
+  if (desde == null || hasta == null) return true;
+  const d = isoADias(iso);
+  return d != null && d >= desde && d <= hasta;
+}
+
 export { MS_DIA, MESES };

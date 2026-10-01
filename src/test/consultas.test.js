@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos, ventas, resumenFacturacion, serieFacturacion } from "../lib/consultas.js";
+import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos, ventas, resumenFacturacion, serieFacturacion, serieComparativa, resumenPeriodo } from "../lib/consultas.js";
+import { rangoMes } from "../lib/fechas.js";
 import { marcarLlamadaRenovacion, marcarLlamadaOptimizacion, nuevoCliente } from "../lib/clientes.js";
 import { isoADias, diasAIso } from "../lib/fechas.js";
 
@@ -163,13 +164,44 @@ describe("ventas() / resumenFacturacion() / serieFacturacion()", () => {
     ],
     // los cobros reales NO deben usarse para la facturación: a propósito, muy
     // distintos de los importes contratados, para detectar si se mezclan.
-    cobros: [{ id: "x", clienteId: "c1", fechaPago: "2026-09-10", importe: 1, estado: "Pendiente" }],
+    cobros: [
+      { id: "x", clienteId: "c1", fechaPago: "2026-09-10", importe: 1, estado: "Pendiente" },
+      { id: "y", clienteId: "c2", fechaPago: "2026-09-15", importe: 597, estado: "Cobrado" },
+    ],
   };
 
   it("ventas() lee de historialCiclos, no de cobros", () => {
     const v = ventas(doc);
     expect(v).toHaveLength(3);
     expect(v.every((x) => x.importe !== 1)).toBe(true);
+  });
+
+  it("ventas() reconstruye la alta si historialCiclos está vacío pero el cliente tiene datos de ciclo", () => {
+    // Caso real: clientes traspasados a mano desde el CRM antiguo sin
+    // historialCiclos, pero con fechaInicio/modalidad/importe propios.
+    const docSinHistorial = {
+      clientes: [
+        {
+          id: "c3",
+          nombre: "Huérfano",
+          historialCiclos: [],
+          fechaInicio: "2026-03-17",
+          modalidad: "3 meses",
+          importe: 150,
+          semanasTotal: 12,
+        },
+      ],
+      cobros: [],
+    };
+    const v = ventas(docSinHistorial);
+    expect(v).toEqual([
+      { clienteId: "c3", clienteNombre: "Huérfano", fecha: "2026-03-17", importe: 150, modalidad: "3 meses", motivo: "alta" },
+    ]);
+  });
+
+  it("ventas() no inventa nada para un cliente sin ciclo ni importe", () => {
+    const v = ventas({ clientes: [{ id: "c4", nombre: "Vacío", historialCiclos: [] }], cobros: [] });
+    expect(v).toEqual([]);
   });
 
   it("resumenFacturacion separa altas de renovaciones y sigue siendo correcto con el total", () => {
@@ -185,6 +217,25 @@ describe("ventas() / resumenFacturacion() / serieFacturacion()", () => {
     expect(s.map((x) => x.mes)).toEqual(["2026-08", "2026-09"]);
     expect(s.find((x) => x.mes === "2026-08")).toMatchObject({ altas: 347, renovaciones: 0 });
     expect(s.find((x) => x.mes === "2026-09")).toMatchObject({ altas: 597, renovaciones: 360 });
+  });
+
+  it("serieComparativa añade el cobrado real del mes junto a la facturación", () => {
+    const s = serieComparativa(doc, isoADias("2026-09-10"), 2);
+    expect(s.find((x) => x.mes === "2026-08")).toMatchObject({ altas: 347, renovaciones: 0, cobrado: 0 });
+    // en septiembre: altas 597 + renov 360 facturados, pero solo 597 cobrados de verdad
+    // (el otro cobro de ese mes está Pendiente y no debe sumar)
+    expect(s.find((x) => x.mes === "2026-09")).toMatchObject({ altas: 597, renovaciones: 360, cobrado: 597 });
+  });
+
+  it("resumenPeriodo('todo') coincide con los totales sin filtrar", () => {
+    const r = resumenPeriodo(doc, { desde: null, hasta: null });
+    expect(r).toEqual({ totalAltas: 347 + 597, totalRenovaciones: 360, totalFacturado: 347 + 597 + 360, totalCobrado: 597 });
+  });
+
+  it("resumenPeriodo acota facturación y caja a un rango de fechas", () => {
+    // Solo agosto: la alta de Ana (347) entra, el resto de septiembre no.
+    const r = resumenPeriodo(doc, rangoMes(isoADias("2026-08-15")));
+    expect(r).toEqual({ totalAltas: 347, totalRenovaciones: 0, totalFacturado: 347, totalCobrado: 0 });
   });
 });
 

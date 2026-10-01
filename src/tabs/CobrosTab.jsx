@@ -1,12 +1,11 @@
 // ─── PESTAÑA COBROS ───────────────────────────────
 import { useMemo, useState } from "react";
-import { cobrosPorMes, serieIngresos, resumenFacturacion, serieFacturacion } from "../lib/consultas.js";
-import { fFecha, fMesAnyo, claveMes } from "../lib/fechas.js";
+import { cobrosPorMes, resumenPeriodo, serieComparativa } from "../lib/consultas.js";
+import { fFecha, fMesAnyo, claveMes, hoyDias, diasAIso, rangoPeriodo, PERIODOS } from "../lib/fechas.js";
 import { Boton, EtiquetaMetodo, EtiquetaPago } from "../components/ui.jsx";
 import Icono from "../components/Icono.jsx";
 import { METODOS_PAGO } from "../lib/clientes.js";
-import GraficaIngresos from "../components/GraficaIngresos.jsx";
-import GraficaFacturacion from "../components/GraficaFacturacion.jsx";
+import GraficaComparativa from "../components/GraficaComparativa.jsx";
 import CobroForm from "../forms/CobroForm.jsx";
 
 const suma = (arr) => arr.reduce((s, c) => s + (Number(c.importe) || 0), 0);
@@ -27,6 +26,9 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
   const [metodo, setMetodo] = useState("todos");
   const [estado, setEstado] = useState("todos");
   const [form, setForm] = useState(null);
+  const [periodoTipo, setPeriodoTipo] = useState("todo");
+  const [rangoDesde, setRangoDesde] = useState("");
+  const [rangoHasta, setRangoHasta] = useState("");
 
   const nombres = useMemo(
     () => Object.fromEntries(doc.clientes.map((c) => [c.id, c.nombre])),
@@ -54,15 +56,13 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
   }, [conNombre, busqueda, mes, metodo, estado]);
 
   const grupos = useMemo(() => cobrosPorMes({ ...doc, cobros: filtrados }), [doc, filtrados]);
-  const serie = useMemo(() => serieIngresos(doc), [doc]);
-  const facturacion = useMemo(() => resumenFacturacion(doc), [doc]);
-  const serieFact = useMemo(() => serieFacturacion(doc), [doc]);
-
-  const totalHistorico = suma(conNombre.filter((c) => c.estado === "Cobrado"));
-  const mesActual = new Date().toISOString().slice(0, 7);
-  const totalEsteMes = suma(
-    conNombre.filter((c) => c.estado === "Cobrado" && claveMes(c.fechaPago) === mesActual)
+  const rango = useMemo(
+    () => rangoPeriodo(periodoTipo, hoyDias(), { desde: rangoDesde, hasta: rangoHasta }),
+    [periodoTipo, rangoDesde, rangoHasta]
   );
+  const resumen = useMemo(() => resumenPeriodo(doc, rango), [doc, rango]);
+  const serieComp = useMemo(() => serieComparativa(doc), [doc]);
+
   const totalFiltrado = suma(filtrados);
   const pendientes = conNombre.filter((c) => c.estado !== "Cobrado");
   const totalPendiente = suma(pendientes);
@@ -75,28 +75,63 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
 
   return (
     <div>
-      <div className="stats-grupo-titulo">Facturación · dinero contratado</div>
-      <div className="stats-grid">
-        <Stat etiqueta="Facturación total" valor={`${facturacion.totalFacturado} €`} tono="azul" />
-        <Stat etiqueta={`Este mes · ${fMesAnyo(`${mesActual}-01`)}`} valor={`${facturacion.facturadoEsteMes} €`} tono="verde" />
-        <Stat etiqueta="De altas" valor={`${facturacion.totalAltas} €`} tono="violeta" />
-        <Stat etiqueta="De renovaciones" valor={`${facturacion.totalRenovaciones} €`} tono="violeta" />
+      <div className="stats-grupo-titulo">Periodo</div>
+      <div className="chips" style={{ marginBottom: 10 }}>
+        {PERIODOS.map((p) => (
+          <button
+            key={p.id}
+            className={`chip ${periodoTipo === p.id ? "activo" : ""}`}
+            onClick={() => setPeriodoTipo(p.id)}
+          >
+            {p.etiqueta}
+          </button>
+        ))}
       </div>
-
-      <div className="bloque">
-        <h3 className="bloque-titulo">Facturación por mes</h3>
-        <p className="pista" style={{ marginTop: -8, marginBottom: 10 }}>
-          Lo contratado en cada ciclo (alta o renovación), se haya cobrado ya o no.
+      {periodoTipo === "personalizado" && (
+        <div className="tarjeta" style={{ display: "flex", gap: 10, flexWrap: "wrap", padding: 14, marginBottom: 10 }}>
+          <label className="campo" style={{ flex: "1 1 160px" }}>
+            <span className="campo-label">Desde</span>
+            <input
+              className="campo-input"
+              type="date"
+              value={rangoDesde}
+              onChange={(e) => setRangoDesde(e.target.value)}
+            />
+          </label>
+          <label className="campo" style={{ flex: "1 1 160px" }}>
+            <span className="campo-label">Hasta</span>
+            <input
+              className="campo-input"
+              type="date"
+              value={rangoHasta}
+              onChange={(e) => setRangoHasta(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
+      {rango.desde != null && rango.hasta != null && (
+        <p className="pista" style={{ marginTop: -4, marginBottom: 12 }}>
+          Del {fFecha(diasAIso(rango.desde))} al {fFecha(diasAIso(rango.hasta))}
         </p>
-        <GraficaFacturacion datos={serieFact} />
+      )}
+
+      <div className="stats-grupo-titulo">Facturación · total contratado (se haya cobrado ya o no)</div>
+      <div className="stats-grid stats-grid-3">
+        <Stat etiqueta="De nuevas altas" valor={`${resumen.totalAltas} €`} tono="azul" sub="Corredores que empiezan" />
+        <Stat etiqueta="De renovaciones" valor={`${resumen.totalRenovaciones} €`} tono="violeta" sub="Corredores que renuevan" />
+        <Stat etiqueta="Facturación total" valor={`${resumen.totalFacturado} €`} tono="verde" />
       </div>
 
       <div className="stats-grupo-titulo" style={{ marginTop: 18 }}>
-        Caja · dinero cobrado
+        Caja · dinero que entra de verdad
       </div>
-      <div className="stats-grid">
-        <Stat etiqueta="Total cobrado" valor={`${totalHistorico} €`} tono="azul" />
-        <Stat etiqueta={`Este mes · ${fMesAnyo(`${mesActual}-01`)}`} valor={`${totalEsteMes} €`} tono="verde" />
+      <div className="stats-grid stats-grid-3">
+        <Stat
+          etiqueta="Cash collected total"
+          valor={`${resumen.totalCobrado} €`}
+          tono="ambar"
+          sub="Altas, renovaciones y cuotas, cobrado ya"
+        />
         <Stat
           etiqueta="Filtrado"
           valor={`${totalFiltrado} €`}
@@ -107,13 +142,17 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
           etiqueta="Por cobrar"
           valor={`${totalPendiente} €`}
           sub={`${pendientes.length} cuota${pendientes.length === 1 ? "" : "s"} pendiente${pendientes.length === 1 ? "" : "s"}`}
-          tono="ambar"
+          tono="azul"
         />
       </div>
 
       <div className="bloque">
-        <h3 className="bloque-titulo">Ingresos cobrados por mes</h3>
-        <GraficaIngresos datos={serie} />
+        <h3 className="bloque-titulo">Facturación vs. cobrado por mes</h3>
+        <p className="pista" style={{ marginTop: -8, marginBottom: 10 }}>
+          A la izquierda, lo contratado en cada ciclo (alta o renovación). A la derecha, lo que
+          realmente entró en caja ese mes.
+        </p>
+        <GraficaComparativa datos={serieComp} />
       </div>
 
       <div className="tarjeta filtros-cobros">
