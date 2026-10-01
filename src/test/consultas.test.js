@@ -239,31 +239,31 @@ describe("ventas() / resumenFacturacion() / serieFacturacion()", () => {
   });
 });
 
-describe("ventas(): la fecha de facturación es la del primer cobro del ciclo, no fechaInicio", () => {
+describe("ventas(): la fecha de facturación es la del cobro disparador, no fechaInicio", () => {
   const doc = {
     clientes: [
       {
         id: "jen",
         nombre: "Jennifer",
-        fechaInicio: "2026-08-25", // el programa "empieza" antes...
-        historialCiclos: [{ fecha: "2026-08-25", modalidad: "6 meses", importe: 696, semanasTotal: 24, motivo: "alta" }],
+        fechaInicio: "2026-10-05", // el programa "empieza" en octubre...
+        historialCiclos: [{ fecha: "2026-10-05", modalidad: "6 meses", importe: 696, semanasTotal: 24, motivo: "alta" }],
       },
     ],
     cobros: [
-      // ...pero no paga/contrata la cuota 1 hasta el 30 de septiembre
-      { id: "j1", clienteId: "jen", fechaPago: "2026-09-30", importe: 116, estado: "Cobrado" },
-      { id: "j2", clienteId: "jen", fechaPago: "2026-10-30", importe: 116, estado: "Pendiente" },
+      // ...pero contrata y paga la cuota 1 en septiembre, antes de esa fecha
+      { id: "j1", clienteId: "jen", fechaPago: "2026-09-30", concepto: "Cuota 1/6", importe: 116, estado: "Cobrado" },
+      { id: "j2", clienteId: "jen", fechaPago: "2026-10-30", concepto: "Cuota 2/6", importe: 116, estado: "Pendiente" },
     ],
   };
 
-  it("usa la fecha del primer cobro (cuota 1) y el importe TOTAL del ciclo, no el de la cuota", () => {
+  it("usa la fecha de la cuota 1 (el disparador) y el importe TOTAL del ciclo, no el de la cuota ni el de fechaInicio", () => {
     const v = ventas(doc);
     expect(v).toEqual([
       { clienteId: "jen", clienteNombre: "Jennifer", fecha: "2026-09-30", importe: 696, modalidad: "6 meses", motivo: "alta" },
     ]);
   });
 
-  it("las cuotas siguientes del mismo ciclo no generan una venta nueva", () => {
+  it("las cuotas siguientes del mismo ciclo (Cuota 2/N...) no generan una venta nueva", () => {
     // en octubre solo cae la cuota 2, pero la venta ya se reconoció entera en septiembre
     const r = resumenPeriodo(doc, rangoMes(isoADias("2026-10-15")));
     expect(r.totalFacturado).toBe(0);
@@ -271,7 +271,36 @@ describe("ventas(): la fecha de facturación es la del primer cobro del ciclo, n
 
   it("si el ciclo aún no tiene ningún cobro, se usa fechaInicio como reserva", () => {
     const sinCobros = { ...doc, cobros: [] };
-    expect(ventas(sinCobros)[0].fecha).toBe("2026-08-25");
+    expect(ventas(sinCobros)[0].fecha).toBe("2026-10-05");
+  });
+
+  it("caso real: la cuota 2 también cae antes de fechaInicio y NO debe convertirse en el disparador", () => {
+    // Patrón real detectado en producción: Fer cobra la cuota 1 varios días
+    // antes de fechaInicio, así que la cuota 2 (~30 días después) a veces
+    // también cae antes de la fecha "oficial" de inicio. Un filtro que exija
+    // fechaPago >= fechaInicio excluiría la cuota 1 y usaría la cuota 2 como
+    // si fuera la venta — justo el bug real que esto corrige.
+    const docReal = {
+      clientes: [
+        {
+          id: "txus",
+          nombre: "Txus",
+          fechaInicio: "2026-09-14",
+          historialCiclos: [{ fecha: "2026-09-14", modalidad: "6 meses", importe: 697, semanasTotal: 24, motivo: "alta" }],
+        },
+      ],
+      cobros: [
+        { id: "t1", clienteId: "txus", fechaPago: "2026-08-27", concepto: "Cuota 1/3", importe: 232, estado: "Cobrado" },
+        { id: "t2", clienteId: "txus", fechaPago: "2026-09-26", concepto: "Cuota 2/3", importe: 232, estado: "Cobrado" },
+      ],
+    };
+    const v = ventas(docReal);
+    expect(v).toEqual([
+      { clienteId: "txus", clienteNombre: "Txus", fecha: "2026-08-27", importe: 697, modalidad: "6 meses", motivo: "alta" },
+    ]);
+    // en septiembre (cuando cae la cuota 2) no debe facturar nada: ya se
+    // reconoció entero en agosto.
+    expect(resumenPeriodo(docReal, rangoMes(isoADias("2026-09-10"))).totalFacturado).toBe(0);
   });
 });
 
@@ -288,17 +317,53 @@ describe("ventas(): separa los cobros de un ciclo antiguo de los del ciclo renov
       },
     ],
     cobros: [
-      { id: "a1", clienteId: "ang", fechaPago: "2026-06-01", importe: 347, estado: "Cobrado" }, // alta, pago único
-      { id: "a2", clienteId: "ang", fechaPago: "2026-09-24", importe: 347, estado: "Cobrado" }, // renovación, pago único
+      { id: "a1", clienteId: "ang", fechaPago: "2026-06-01", concepto: "Programa completo", importe: 347, estado: "Cobrado" },
+      { id: "a2", clienteId: "ang", fechaPago: "2026-09-24", concepto: "Renovación", importe: 347, estado: "Cobrado" },
     ],
   };
 
-  it("cada ciclo reconoce su propia venta en la fecha de su propio primer cobro", () => {
+  it("cada ciclo reconoce su propia venta en la fecha de su propio disparador", () => {
     const v = ventas(doc);
     expect(v).toEqual([
       { clienteId: "ang", clienteNombre: "Angelica", fecha: "2026-09-24", importe: 347, modalidad: "3 meses", motivo: "renovacion" },
       { clienteId: "ang", clienteNombre: "Angelica", fecha: "2026-06-01", importe: 347, modalidad: "3 meses", motivo: "alta" },
     ]);
+  });
+
+  it("caso real con 3 ciclos: ningún disparador se cuenta dos veces ni se cuela en el ciclo equivocado", () => {
+    // Patrón real detectado en producción: CADA pago (alta y las 2 renovaciones)
+    // cae unos días ANTES de la fecha de su propio ciclo. Con un filtro por
+    // ventana de fechas esto hacía que el pago de la 2ª renovación se colara
+    // en la ventana de la 1ª renovación (porque también cae antes de su
+    // "fecha"), y la 1ª renovación acababa facturándose DOS veces: una con su
+    // propio pago (mal emparejado) y otra por reserva (fechaInicio). El
+    // emparejamiento en orden cronológico evita esto.
+    const docReal = {
+      clientes: [
+        {
+          id: "jlr",
+          nombre: "José Luís",
+          historialCiclos: [
+            { fecha: "2026-03-30", modalidad: "3 meses", importe: 390, semanasTotal: 12, motivo: "alta" },
+            { fecha: "2026-06-22", modalidad: "3 meses", importe: 360, semanasTotal: 12, motivo: "renovacion" },
+            { fecha: "2026-09-14", modalidad: "3 meses", importe: 360, semanasTotal: 12, motivo: "renovacion" },
+          ],
+        },
+      ],
+      cobros: [
+        { id: "c1", clienteId: "jlr", fechaPago: "2026-03-23", concepto: "Cuota 1/3", importe: 130, estado: "Cobrado" },
+        { id: "c2", clienteId: "jlr", fechaPago: "2026-06-16", concepto: "Cuota 1/3", importe: 120, estado: "Cobrado" },
+        { id: "c3", clienteId: "jlr", fechaPago: "2026-09-16", concepto: "Cuota 1/3", importe: 120, estado: "Cobrado" },
+      ],
+    };
+    const v = ventas(docReal);
+    expect(v).toHaveLength(3); // una venta por ciclo, nunca más
+    expect(v).toEqual([
+      { clienteId: "jlr", clienteNombre: "José Luís", fecha: "2026-09-16", importe: 360, modalidad: "3 meses", motivo: "renovacion" },
+      { clienteId: "jlr", clienteNombre: "José Luís", fecha: "2026-06-16", importe: 360, modalidad: "3 meses", motivo: "renovacion" },
+      { clienteId: "jlr", clienteNombre: "José Luís", fecha: "2026-03-23", importe: 390, modalidad: "3 meses", motivo: "alta" },
+    ]);
+    expect(v.reduce((s, x) => s + x.importe, 0)).toBe(390 + 360 + 360);
   });
 });
 

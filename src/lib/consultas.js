@@ -192,17 +192,30 @@ export function serieIngresos(doc, hoy = hoyDias(), n = 8) {
   return ultimosMeses(hoy, n).map((mes) => ({ mes, total: Math.round(porMes[mes] || 0) }));
 }
 
+// Un cobro "dispara" una venta nueva si es el primer pago de un ciclo: una
+// cuota 1 ("Cuota 1/3"), un pago único ("Programa completo", "Renovación",
+// "Renovación anticipada"...) — cualquier concepto que NO sea "Cuota 2/3",
+// "Cuota 3/3" etc. (una cuota 2ª en adelante nunca dispara nada nuevo, ya se
+// facturó con la cuota 1 de su ciclo).
+function esCuotaDeContinuacion(concepto) {
+  const m = /^Cuota\s*(\d+)/i.exec(String(concepto || "").trim());
+  return m ? Number(m[1]) > 1 : false;
+}
+
 // ── Facturación (dinero contratado) ──────────────
 // Cada alta y cada renovación es una "venta": se reconoce el TOTAL
 // contratado de ese ciclo (historialCiclos.importe — nunca el importe de una
 // cuota suelta), haya entrado ya el cash o no. La fecha de la venta es la del
-// PRIMER cobro de ese ciclo (la cuota 1, el "Programa completo" o la
-// "Renovación" — da igual si ya está Cobrado o sigue Pendiente), no la de
-// fechaInicio: así la venta cae en el mes en que de verdad se contrató, que a
-// veces no coincide con el día en que arranca el programa. Si el ciclo aún no
-// tiene ningún cobro registrado, se usa fechaInicio como reserva. Las cuotas
-// 2ª en adelante de un ciclo YA reconocido no vuelven a sumar en facturación
-// (solo entran en caja): por eso facturación y caja pueden no coincidir.
+// cobro que dispara ese ciclo (ver esCuotaDeContinuacion), no la de
+// fechaInicio: en la práctica el cliente suele pagar unos días ANTES de que
+// el programa arranque oficialmente, así que fechaInicio no sirve para saber
+// cuándo se contrató de verdad. Los disparadores de un cliente se emparejan
+// EN ORDEN cronológico con sus ciclos (también en orden): si un ciclo no
+// tiene ningún disparador disponible antes de que empiece el siguiente (p.
+// ej. una renovación "ya cobrada por adelantado", sin cobro propio), se usa
+// su fechaInicio como reserva. Las cuotas 2ª en adelante no vuelven a sumar
+// en facturación (solo entran en caja): por eso facturación y caja pueden no
+// coincidir.
 export function ventas(doc) {
   const out = [];
   for (const c of doc.clientes || []) {
@@ -220,22 +233,22 @@ export function ventas(doc) {
       .slice()
       .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
 
-    const cobrosCliente = (doc.cobros || []).filter((co) => co.clienteId === c.id);
+    const disparadores = (doc.cobros || [])
+      .filter((co) => co.clienteId === c.id && !esCuotaDeContinuacion(co.concepto))
+      .sort((a, b) => String(a.fechaPago).localeCompare(String(b.fechaPago)));
 
+    let j = 0;
     ciclos.forEach((h, i) => {
-      const inicio = h.fecha;
-      const inicioSiguiente = ciclos[i + 1]?.fecha;
-      const cobrosDelCiclo = cobrosCliente.filter(
-        (co) => String(co.fechaPago) >= String(inicio) && (!inicioSiguiente || String(co.fechaPago) < String(inicioSiguiente))
-      );
-      const primerCobro = cobrosDelCiclo.reduce(
-        (min, co) => (min == null || String(co.fechaPago) < String(min) ? co.fechaPago : min),
-        null
-      );
+      const limite = ciclos[i + 1]?.fecha; // sin límite = último ciclo del cliente
+      let fecha = h.fecha;
+      if (j < disparadores.length && (!limite || String(disparadores[j].fechaPago) < String(limite))) {
+        fecha = disparadores[j].fechaPago;
+        j++;
+      }
       out.push({
         clienteId: c.id,
         clienteNombre: c.nombre,
-        fecha: primerCobro || inicio,
+        fecha,
         importe: Number(h.importe) || 0,
         modalidad: h.modalidad,
         motivo: h.motivo === "renovacion" ? "renovacion" : "alta",
