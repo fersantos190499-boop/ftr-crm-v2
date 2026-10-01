@@ -1,7 +1,11 @@
 // ─── SUPABASE ─────────────────────────────────────
 // Mismo proyecto que el CRM anterior, TABLA NUEVA y VACÍA: ftr_crm (fila id=1,
 // columna data JSONB). No se toca la tabla ftr_data del CRM viejo.
-// La clave "anon" es pública por diseño (va en el navegador, igual que antes).
+// La clave "anon" es pública por diseño (va en el navegador, igual que antes);
+// lo que de verdad protege los datos es la política RLS (solo autenticados) +
+// el token de la usuaria que ha iniciado sesión (ver lib/auth.js).
+
+import { tokenValido } from "./auth.js";
 
 const SUPABASE_URL = "https://duwcvzlcxdcbyvlxibrv.supabase.co";
 const SUPABASE_ANON_KEY =
@@ -12,18 +16,22 @@ const TABLA = "ftr_crm";
 // con VITE_FILA_ID para no tocar los datos de producción al hacer pruebas.
 const FILA_ID = Number(import.meta.env.VITE_FILA_ID) || 1;
 
-const CABECERAS = {
-  apikey: SUPABASE_ANON_KEY,
-  Authorization: "Bearer " + SUPABASE_ANON_KEY,
-  "Content-Type": "application/json",
-};
+async function cabeceras() {
+  const token = await tokenValido();
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    // Con sesión: el token de la usuaria (RLS ve auth.role()='authenticated').
+    // Sin sesión: la propia clave anon, que la política ya no acepta.
+    Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+    "Content-Type": "application/json",
+  };
+}
 
 // Devuelve el objeto `data` de la fila, o null si la fila aún no tiene datos.
 export async function cargar() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/${TABLA}?id=eq.${FILA_ID}&select=data`,
-    { headers: CABECERAS }
-  );
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA}?id=eq.${FILA_ID}&select=data`, {
+    headers: await cabeceras(),
+  });
   if (!res.ok) throw new Error(`Supabase cargar ${res.status}`);
   const filas = await res.json();
   const data = filas[0]?.data;
@@ -34,7 +42,7 @@ export async function cargar() {
 export async function guardar(data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA}`, {
     method: "POST",
-    headers: { ...CABECERAS, Prefer: "resolution=merge-duplicates,return=minimal" },
+    headers: { ...(await cabeceras()), Prefer: "resolution=merge-duplicates,return=minimal" },
     body: JSON.stringify({ id: FILA_ID, data, updated_at: new Date().toISOString() }),
   });
   if (!res.ok) throw new Error(`Supabase guardar ${res.status}`);

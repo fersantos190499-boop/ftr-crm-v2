@@ -164,9 +164,8 @@ export function panelInicio(doc, hoy = hoyDias()) {
   };
 }
 
-// ── Serie de ingresos cobrados por mes (para la gráfica) ──
-// Devuelve los últimos `n` meses hasta el actual, con la suma cobrada de cada uno.
-export function serieIngresos(doc, hoy = hoyDias(), n = 8) {
+// Lista de claves "AAAA-MM" de los últimos `n` meses, terminando en el actual.
+function ultimosMeses(hoy, n) {
   const mesActual = diasAIso(hoy).slice(0, 7);
   let [y, m] = mesActual.split("-").map(Number);
   const meses = [];
@@ -178,11 +177,66 @@ export function serieIngresos(doc, hoy = hoyDias(), n = 8) {
       y -= 1;
     }
   }
+  return meses;
+}
+
+// ── Serie de ingresos cobrados por mes (para la gráfica) ──
+// Devuelve los últimos `n` meses hasta el actual, con la suma cobrada de cada uno.
+export function serieIngresos(doc, hoy = hoyDias(), n = 8) {
   const porMes = {};
   for (const c of doc.cobros || []) {
     if (c.estado !== "Cobrado") continue;
     const k = claveMes(c.fechaPago);
     if (k) porMes[k] = (porMes[k] || 0) + (Number(c.importe) || 0);
   }
-  return meses.map((mes) => ({ mes, total: Math.round(porMes[mes] || 0) }));
+  return ultimosMeses(hoy, n).map((mes) => ({ mes, total: Math.round(porMes[mes] || 0) }));
+}
+
+// ── Facturación (dinero contratado) ──────────────
+// Cada alta y cada renovación es una "venta": el importe se reconoce en el
+// momento de contratar, haya o no haya entrado ya el cash. Se lee directamente
+// de historialCiclos (que YA registra cada ciclo contratado), nunca de los
+// cobros reales — por eso facturación y caja pueden no coincidir.
+export function ventas(doc) {
+  const out = [];
+  for (const c of doc.clientes || []) {
+    for (const h of c.historialCiclos || []) {
+      out.push({
+        clienteId: c.id,
+        clienteNombre: c.nombre,
+        fecha: h.fecha,
+        importe: Number(h.importe) || 0,
+        modalidad: h.modalidad,
+        motivo: h.motivo === "renovacion" ? "renovacion" : "alta",
+      });
+    }
+  }
+  return out.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+}
+
+export function resumenFacturacion(doc, hoy = hoyDias()) {
+  const v = ventas(doc);
+  const mesActual = diasAIso(hoy).slice(0, 7);
+  const deAltas = v.filter((x) => x.motivo === "alta");
+  const deRenovaciones = v.filter((x) => x.motivo === "renovacion");
+  return {
+    ventas: v,
+    totalFacturado: sum(v),
+    totalAltas: sum(deAltas),
+    totalRenovaciones: sum(deRenovaciones),
+    facturadoEsteMes: sum(v.filter((x) => claveMes(x.fecha) === mesActual)),
+  };
+}
+
+// Serie mensual de facturación separada por alta/renovación (gráfica apilada).
+export function serieFacturacion(doc, hoy = hoyDias(), n = 8) {
+  const v = ventas(doc);
+  return ultimosMeses(hoy, n).map((mes) => {
+    const delMes = v.filter((x) => claveMes(x.fecha) === mes);
+    return {
+      mes,
+      altas: Math.round(sum(delMes.filter((x) => x.motivo === "alta"))),
+      renovaciones: Math.round(sum(delMes.filter((x) => x.motivo === "renovacion"))),
+    };
+  });
 }

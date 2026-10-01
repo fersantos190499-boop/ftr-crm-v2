@@ -1,11 +1,12 @@
 // ─── PESTAÑA COBROS ───────────────────────────────
 import { useMemo, useState } from "react";
-import { cobrosPorMes, serieIngresos } from "../lib/consultas.js";
+import { cobrosPorMes, serieIngresos, resumenFacturacion, serieFacturacion } from "../lib/consultas.js";
 import { fFecha, fMesAnyo, claveMes } from "../lib/fechas.js";
 import { Boton, EtiquetaMetodo, EtiquetaPago } from "../components/ui.jsx";
 import Icono from "../components/Icono.jsx";
 import { METODOS_PAGO } from "../lib/clientes.js";
 import GraficaIngresos from "../components/GraficaIngresos.jsx";
+import GraficaFacturacion from "../components/GraficaFacturacion.jsx";
 import CobroForm from "../forms/CobroForm.jsx";
 
 const suma = (arr) => arr.reduce((s, c) => s + (Number(c.importe) || 0), 0);
@@ -54,6 +55,8 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
 
   const grupos = useMemo(() => cobrosPorMes({ ...doc, cobros: filtrados }), [doc, filtrados]);
   const serie = useMemo(() => serieIngresos(doc), [doc]);
+  const facturacion = useMemo(() => resumenFacturacion(doc), [doc]);
+  const serieFact = useMemo(() => serieFacturacion(doc), [doc]);
 
   const totalHistorico = suma(conNombre.filter((c) => c.estado === "Cobrado"));
   const mesActual = new Date().toISOString().slice(0, 7);
@@ -72,6 +75,25 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
 
   return (
     <div>
+      <div className="stats-grupo-titulo">Facturación · dinero contratado</div>
+      <div className="stats-grid">
+        <Stat etiqueta="Facturación total" valor={`${facturacion.totalFacturado} €`} tono="azul" />
+        <Stat etiqueta={`Este mes · ${fMesAnyo(`${mesActual}-01`)}`} valor={`${facturacion.facturadoEsteMes} €`} tono="verde" />
+        <Stat etiqueta="De altas" valor={`${facturacion.totalAltas} €`} tono="violeta" />
+        <Stat etiqueta="De renovaciones" valor={`${facturacion.totalRenovaciones} €`} tono="violeta" />
+      </div>
+
+      <div className="bloque">
+        <h3 className="bloque-titulo">Facturación por mes</h3>
+        <p className="pista" style={{ marginTop: -8, marginBottom: 10 }}>
+          Lo contratado en cada ciclo (alta o renovación), se haya cobrado ya o no.
+        </p>
+        <GraficaFacturacion datos={serieFact} />
+      </div>
+
+      <div className="stats-grupo-titulo" style={{ marginTop: 18 }}>
+        Caja · dinero cobrado
+      </div>
       <div className="stats-grid">
         <Stat etiqueta="Total cobrado" valor={`${totalHistorico} €`} tono="azul" />
         <Stat etiqueta={`Este mes · ${fMesAnyo(`${mesActual}-01`)}`} valor={`${totalEsteMes} €`} tono="verde" />

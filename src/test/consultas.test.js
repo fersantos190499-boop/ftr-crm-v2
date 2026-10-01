@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos } from "../lib/consultas.js";
+import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos, ventas, resumenFacturacion, serieFacturacion } from "../lib/consultas.js";
 import { marcarLlamadaRenovacion, marcarLlamadaOptimizacion, nuevoCliente } from "../lib/clientes.js";
 import { isoADias, diasAIso } from "../lib/fechas.js";
 
@@ -141,6 +141,50 @@ describe("serieIngresos()", () => {
     expect(s.find((x) => x.mes === "2026-09").total).toBe(500);
     expect(s.find((x) => x.mes === "2026-08").total).toBe(100);
     expect(s.find((x) => x.mes === "2026-07").total).toBe(0);
+  });
+});
+
+describe("ventas() / resumenFacturacion() / serieFacturacion()", () => {
+  const doc = {
+    clientes: [
+      {
+        id: "c1",
+        nombre: "Ana",
+        historialCiclos: [
+          { fecha: "2026-08-05", modalidad: "3 meses", importe: 347, semanasTotal: 12, motivo: "alta" },
+          { fecha: "2026-09-10", modalidad: "3 meses", importe: 360, semanasTotal: 12, motivo: "renovacion" },
+        ],
+      },
+      {
+        id: "c2",
+        nombre: "Bea",
+        historialCiclos: [{ fecha: "2026-09-02", modalidad: "6 meses", importe: 597, semanasTotal: 24, motivo: "alta" }],
+      },
+    ],
+    // los cobros reales NO deben usarse para la facturación: a propósito, muy
+    // distintos de los importes contratados, para detectar si se mezclan.
+    cobros: [{ id: "x", clienteId: "c1", fechaPago: "2026-09-10", importe: 1, estado: "Pendiente" }],
+  };
+
+  it("ventas() lee de historialCiclos, no de cobros", () => {
+    const v = ventas(doc);
+    expect(v).toHaveLength(3);
+    expect(v.every((x) => x.importe !== 1)).toBe(true);
+  });
+
+  it("resumenFacturacion separa altas de renovaciones y sigue siendo correcto con el total", () => {
+    const r = resumenFacturacion(doc, isoADias("2026-09-10"));
+    expect(r.totalAltas).toBe(347 + 597);
+    expect(r.totalRenovaciones).toBe(360);
+    expect(r.totalFacturado).toBe(347 + 597 + 360);
+    expect(r.facturadoEsteMes).toBe(597 + 360); // ambas de septiembre
+  });
+
+  it("serieFacturacion agrupa por mes con altas y renovaciones por separado", () => {
+    const s = serieFacturacion(doc, isoADias("2026-09-10"), 2);
+    expect(s.map((x) => x.mes)).toEqual(["2026-08", "2026-09"]);
+    expect(s.find((x) => x.mes === "2026-08")).toMatchObject({ altas: 347, renovaciones: 0 });
+    expect(s.find((x) => x.mes === "2026-09")).toMatchObject({ altas: 597, renovaciones: 360 });
   });
 });
 

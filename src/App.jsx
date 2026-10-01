@@ -1,7 +1,10 @@
 // ─── APP ──────────────────────────────────────────
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "./lib/store.jsx";
 import { esActivo } from "./lib/estado.js";
+import { tokenValido, cerrarSesion } from "./lib/auth.js";
+import Login from "./components/Login.jsx";
+import Icono from "./components/Icono.jsx";
 import SyncBadge from "./components/SyncBadge.jsx";
 import SemanaTab from "./tabs/SemanaTab.jsx";
 import InicioTab from "./tabs/InicioTab.jsx";
@@ -22,7 +25,35 @@ const TABS = [
   { id: "datos", label: "Datos" },
 ];
 
+// ── Puerta de acceso: sin sesión válida no se monta nada del CRM ──
 export default function App() {
+  const [sesion, setSesion] = useState("comprobando"); // comprobando | fuera | dentro
+
+  useEffect(() => {
+    let vivo = true;
+    tokenValido().then((token) => {
+      if (vivo) setSesion(token ? "dentro" : "fuera");
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  if (sesion === "comprobando") {
+    return (
+      <div className="vacio" style={{ marginTop: 80 }}>
+        <Icono nombre="candado" size={32} className="ico-vacio" />
+        <p>Comprobando sesión…</p>
+      </div>
+    );
+  }
+  if (sesion === "fuera") {
+    return <Login onEntrar={() => setSesion("dentro")} />;
+  }
+  return <CRM onSalir={() => setSesion("fuera")} />;
+}
+
+function CRM({ onSalir }) {
   const { data, actualizar, listo, sync, ultimaSync, sincronizarAhora, exportar, importar } = useStore();
   const [tab, setTab] = useState("semana");
   const [fichaId, setFichaId] = useState(null);
@@ -30,7 +61,7 @@ export default function App() {
   if (!listo) {
     return (
       <div className="vacio" style={{ marginTop: 80 }}>
-        <div className="emoji">🏃</div>
+        <Icono nombre="inicio" size={32} className="ico-vacio" />
         <p>Cargando Fuel to Run…</p>
       </div>
     );
@@ -39,6 +70,12 @@ export default function App() {
   const activos = data.clientes.filter(esActivo).length;
   const fichaCliente = fichaId ? data.clientes.find((c) => c.id === fichaId) : null;
   const abrirFicha = (id) => setFichaId(id);
+
+  const salir = () => {
+    if (!window.confirm("¿Cerrar sesión en este dispositivo?")) return;
+    cerrarSesion();
+    onSalir();
+  };
 
   return (
     <div>
@@ -66,7 +103,12 @@ export default function App() {
               <div className="marca-sub">{activos} clientes activos</div>
             </div>
           </div>
-          <SyncBadge sync={sync} ultimaSync={ultimaSync} onSincronizar={sincronizarAhora} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <SyncBadge sync={sync} ultimaSync={ultimaSync} onSincronizar={sincronizarAhora} />
+            <button className="salir-boton" onClick={salir} title="Cerrar sesión">
+              <Icono nombre="salir" size={16} />
+            </button>
+          </div>
         </div>
         <div className="contenedor">
           <nav className="tabs">
