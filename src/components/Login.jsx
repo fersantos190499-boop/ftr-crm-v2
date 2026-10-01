@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { iniciarSesion } from "../lib/auth.js";
 import Icono from "./Icono.jsx";
+import logo from "../assets/logo.png";
 
 export default function Login({ onEntrar }) {
   const [email, setEmail] = useState("");
@@ -27,21 +28,7 @@ export default function Login({ onEntrar }) {
   return (
     <div className="login-pantalla">
       <form className="login-caja" onSubmit={enviar}>
-        <div className="login-logo">
-          <svg viewBox="0 0 32 32" width="24" height="24">
-            <path
-              d="M5 21 L12 13 L17 17 L27 6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <circle cx="27" cy="6" r="3" fill="currentColor" />
-            <path d="M5 26 H27" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.45" />
-          </svg>
-        </div>
-        <h1 className="login-titulo">Fuel to Run · CRM</h1>
+        <img src={logo} alt="Fuel to Run" className="login-logo-img" />
         <p className="pista" style={{ textAlign: "center", marginBottom: 18 }}>
           Acceso privado. Inicia sesión para continuar.
         </p>

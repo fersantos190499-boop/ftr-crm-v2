@@ -97,14 +97,10 @@ h4 {
   align-items: center;
   gap: 11px;
 }
-.marca .logo {
-  background: #fff;
-  color: var(--brand);
+.marca-logo-img {
+  height: 40px;
+  width: auto;
   border-radius: 9px;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
@@ -175,22 +171,13 @@ h4 {
   display: flex;
   flex-direction: column;
 }
-.login-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: var(--brand);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  margin: 0 auto 14px;
-}
-.login-titulo {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--ink);
-  text-align: center;
-  margin-bottom: 4px;
+.login-logo-img {
+  width: 92px;
+  height: auto;
+  border-radius: 16px;
+  margin: 0 auto 16px;
+  display: block;
+  box-shadow: var(--shadow-1);
 }
 .login-error {
   display: flex;
@@ -1279,9 +1266,8 @@ textarea.campo-input {
   .cab-fila {
     padding: 10px 0 8px;
   }
-  .marca .logo {
-    width: 31px;
-    height: 31px;
+  .marca-logo-img {
+    height: 34px;
   }
   .marca-nombre {
     font-size: 14.5px;
