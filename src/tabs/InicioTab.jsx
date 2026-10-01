@@ -1,7 +1,7 @@
 // ─── PESTAÑA INICIO (panel) ───────────────────────
 // El negocio de un vistazo: KPIs, alertas y próximas carreras.
 
-import { panelInicio } from "../lib/consultas.js";
+import { panelInicio, tasaRenovacion, ltvMedio } from "../lib/consultas.js";
 import { fMesAnyo, fFecha } from "../lib/fechas.js";
 import { COLOR_SEMAFORO, urgenciaPorDias } from "../lib/estado.js";
 import Icono from "../components/Icono.jsx";
@@ -48,6 +48,8 @@ function Titulo({ icono, children, n }) {
 export default function InicioTab({ doc, irATab, abrirFicha }) {
   const p = panelInicio(doc);
   const mesTxt = fMesAnyo(`${p.mesActual}-01`);
+  const renov = tasaRenovacion(doc);
+  const ltv = ltvMedio(doc);
 
   if (doc.clientes.length === 0) {
     return (
@@ -89,6 +91,20 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
           etiqueta="Renovaciones este mes"
           valor={p.renovacionesMes.length}
           sub={p.renovacionesMes.length ? "ciclos que terminan este mes" : "ninguna prevista"}
+        />
+        <Kpi
+          icono="revision"
+          tono="violeta"
+          etiqueta="Tasa de renovación"
+          valor={renov.tasa != null ? `${renov.tasa}%` : "—"}
+          sub={renov.total > 0 ? `${renov.renovaron} de ${renov.total} ciclos resueltos` : "aún sin ciclos resueltos"}
+        />
+        <Kpi
+          icono="grafica"
+          tono="brand"
+          etiqueta="LTV medio"
+          valor={`${ltv} €`}
+          sub="facturado de media por cliente, de siempre"
         />
       </div>
 
@@ -132,6 +148,29 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
           </div>
         )}
       </section>
+
+      {/* Quién no renovó (diagnóstico de retención) */}
+      {renov.noRenovaronLista.length > 0 && (
+        <section className="bloque">
+          <Titulo icono="renovar" n={renov.noRenovaronLista.length}>
+            No renovaron
+          </Titulo>
+          <div className="lista-simple">
+            {renov.noRenovaronLista.slice(0, 5).map((x) => (
+              <div className="fila-llamada" key={x.clienteId}>
+                <button className="enlace" onClick={() => abrirFicha(x.clienteId)}>
+                  <strong>{x.clienteNombre}</strong>
+                  <span className="pista"> · {x.estado}</span>
+                </button>
+                <span className="pista">último ciclo: {fFecha(x.finCiclo)}</span>
+              </div>
+            ))}
+            {renov.noRenovaronLista.length > 5 && (
+              <div className="pista">y {renov.noRenovaronLista.length - 5} más…</div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Revisión mensual esta semana */}
       {p.revisionMensual.length > 0 && (

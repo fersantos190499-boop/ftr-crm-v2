@@ -28,6 +28,8 @@
   --amber-bg: #fbf1e0;
   --green: #12855f;
   --green-bg: #e7f6ef;
+  --violeta: #6b3fc0;
+  --violeta-bg: #f1ecfb;
 
   /* Escala */
   --r-sm: 8px;
@@ -828,6 +830,13 @@ textarea.campo-input {
 }
 .kpi-ambar .kpi-valor {
   color: var(--amber);
+}
+.kpi-violeta .kpi-icono {
+  background: var(--violeta-bg);
+  color: var(--violeta);
+}
+.kpi-violeta .kpi-valor {
+  color: var(--violeta);
 }
 
 /* ── Alertas (Inicio) ─────────────────────────── */

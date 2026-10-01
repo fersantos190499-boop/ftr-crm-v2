@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos, ventas, resumenFacturacion, serieFacturacion, serieComparativa, resumenPeriodo } from "../lib/consultas.js";
+import { llamadas, carreras, cobrosPorMes, mapaNombres, serieIngresos, ventas, resumenFacturacion, serieFacturacion, serieComparativa, resumenPeriodo, tasaRenovacion, ltvPorCliente, ltvCliente, ltvMedio } from "../lib/consultas.js";
 import { rangoMes } from "../lib/fechas.js";
 import { marcarLlamadaRenovacion, marcarLlamadaOptimizacion, nuevoCliente } from "../lib/clientes.js";
 import { isoADias, diasAIso } from "../lib/fechas.js";
@@ -364,6 +364,107 @@ describe("ventas(): separa los cobros de un ciclo antiguo de los del ciclo renov
       { clienteId: "jlr", clienteNombre: "José Luís", fecha: "2026-03-23", importe: 390, modalidad: "3 meses", motivo: "alta" },
     ]);
     expect(v.reduce((s, x) => s + x.importe, 0)).toBe(390 + 360 + 360);
+  });
+});
+
+describe("tasaRenovacion()", () => {
+  const HOY2 = isoADias("2026-10-01");
+
+  it("un ciclo con otro ciclo detrás ya cuenta como renovado, pase lo que pase con el último", () => {
+    const doc = {
+      clientes: [
+        {
+          id: "a",
+          nombre: "Activo con renovación en curso",
+          estado: "Activo",
+          historialCiclos: [
+            { fecha: "2026-01-01", semanasTotal: 12, motivo: "alta" },
+            { fecha: "2026-09-01", semanasTotal: 12, motivo: "renovacion" }, // aún en curso
+          ],
+        },
+      ],
+    };
+    const r = tasaRenovacion(doc, HOY2);
+    // el alta ya renovó (hecho consumado); el ciclo actual sigue en curso -> no se evalúa
+    expect(r).toEqual({ renovaron: 1, noRenovaron: 0, total: 1, tasa: 100, noRenovaronLista: [] });
+  });
+
+  it("Finalizado/Baja en el último ciclo siempre cuenta como 'no renovó', pase lo que pase con la fecha", () => {
+    const doc = {
+      clientes: [
+        {
+          id: "b",
+          nombre: "Se dio de baja",
+          estado: "Finalizado",
+          historialCiclos: [
+            { fecha: "2026-01-01", semanasTotal: 12, motivo: "alta" },
+            { fecha: "2026-04-01", semanasTotal: 12, motivo: "renovacion" },
+          ],
+        },
+      ],
+    };
+    const r = tasaRenovacion(doc, HOY2);
+    expect(r.renovaron).toBe(1); // el alta
+    expect(r.noRenovaron).toBe(1); // la renovación, que no tuvo una siguiente
+    expect(r.tasa).toBe(50);
+    expect(r.noRenovaronLista).toEqual([
+      { clienteId: "b", clienteNombre: "Se dio de baja", estado: "Finalizado", finCiclo: "2026-04-01" },
+    ]);
+  });
+
+  it("un único ciclo Activo cuyo plazo ya pasó cuenta como renovado (sin señal de baja)", () => {
+    const doc = {
+      clientes: [{ id: "c", nombre: "Sigue activo", estado: "Activo", historialCiclos: [{ fecha: "2026-01-01", semanasTotal: 12, motivo: "alta" }] }],
+    };
+    expect(tasaRenovacion(doc, HOY2)).toMatchObject({ renovaron: 1, noRenovaron: 0 });
+  });
+
+  it("un único ciclo Activo que todavía no ha terminado no se evalúa", () => {
+    const doc = {
+      clientes: [{ id: "d", nombre: "Recién empezado", estado: "Activo", historialCiclos: [{ fecha: "2026-09-25", semanasTotal: 12, motivo: "alta" }] }],
+    };
+    expect(tasaRenovacion(doc, HOY2)).toEqual({ renovaron: 0, noRenovaron: 0, total: 0, tasa: null, noRenovaronLista: [] });
+  });
+
+  it("un cliente sin historialCiclos no cuenta para nada", () => {
+    const doc = { clientes: [{ id: "e", nombre: "Sin ciclos", estado: "Finalizado", historialCiclos: [] }] };
+    expect(tasaRenovacion(doc, HOY2)).toEqual({ renovaron: 0, noRenovaron: 0, total: 0, tasa: null, noRenovaronLista: [] });
+  });
+});
+
+describe("ltvPorCliente() / ltvCliente() / ltvMedio()", () => {
+  const doc = {
+    clientes: [
+      {
+        id: "x",
+        nombre: "Con dos ciclos",
+        historialCiclos: [
+          { fecha: "2026-01-01", importe: 300, motivo: "alta" },
+          { fecha: "2026-04-01", importe: 320, motivo: "renovacion" },
+        ],
+      },
+      { id: "y", nombre: "Con un ciclo", historialCiclos: [{ fecha: "2026-02-01", importe: 500, motivo: "alta" }] },
+    ],
+    cobros: [],
+  };
+
+  it("ltvPorCliente suma TODOS los ciclos de cada cliente, no solo el actual", () => {
+    const mapa = ltvPorCliente(doc);
+    expect(mapa.get("x")).toBe(300 + 320);
+    expect(mapa.get("y")).toBe(500);
+  });
+
+  it("ltvCliente devuelve el LTV de un cliente concreto (0 si no existe)", () => {
+    expect(ltvCliente(doc, "x")).toBe(620);
+    expect(ltvCliente(doc, "no-existe")).toBe(0);
+  });
+
+  it("ltvMedio es el promedio entre todos los clientes con ventas", () => {
+    expect(ltvMedio(doc)).toBe(Math.round((620 + 500) / 2));
+  });
+
+  it("ltvMedio es 0 si no hay ventas", () => {
+    expect(ltvMedio({ clientes: [], cobros: [] })).toBe(0);
   });
 });
 

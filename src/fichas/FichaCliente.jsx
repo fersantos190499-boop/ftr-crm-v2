@@ -10,6 +10,7 @@ import Icono from "../components/Icono.jsx";
 import { ESTADOS, COLOR_ESTADO } from "../lib/estado.js";
 import { LISTA_MODALIDADES, semanasDeModalidad, calcularCliente } from "../lib/logica.js";
 import { cobrosDeCliente, METODOS_PAGO, ESTADOS_PAGO, marcarLlamadaRenovacion, marcarLlamadaOptimizacion, registrarContacto } from "../lib/clientes.js";
+import { ltvCliente } from "../lib/consultas.js";
 import { fFecha } from "../lib/fechas.js";
 import CobroForm from "../forms/CobroForm.jsx";
 import CarreraForm from "../forms/CarreraForm.jsx";
@@ -165,6 +166,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
     actualizar((d) => marcarLlamadaOptimizacion(d, cliente.id, semana, !cliente.llamadasOptimizacion?.[semana]?.hecha));
 
   const carreras = (cliente.carreras || []).slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+  const ltv = ltvCliente(doc, cliente.id);
 
   return (
     <Modal
@@ -413,7 +415,12 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
       {/* Historial de ciclos */}
       {Array.isArray(cliente.historialCiclos) && cliente.historialCiclos.length > 0 && (
         <div className="ficha-seccion">
-          <div className="ficha-titulo">Historial de ciclos</div>
+          <div className="ficha-titulo">
+            Historial de ciclos
+            <span className="pista" style={{ marginLeft: "auto", fontWeight: 400 }}>
+              facturación total de este cliente: {ltv} €
+            </span>
+          </div>
           <ul className="lista-simple">
             {cliente.historialCiclos.map((h, i) => (
               <li key={i}>

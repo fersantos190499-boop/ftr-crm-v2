@@ -314,3 +314,65 @@ export function serieComparativa(doc, hoy = hoyDias(), n = 8) {
   const porMes = Object.fromEntries(cobrado.map((x) => [x.mes, x.total]));
   return fact.map((f) => ({ ...f, cobrado: porMes[f.mes] || 0 }));
 }
+
+// ── Tasa de renovación ────────────────────────────
+// De cada ciclo que YA se ha resuelto (el cliente decidió seguir o no), ¿en
+// cuántos renovó? Un ciclo con otro ciclo detrás en historialCiclos ya
+// renovó, es un hecho. El ÚLTIMO ciclo de cada cliente solo se evalúa cuando
+// ya está resuelto: si el cliente está Finalizado/Baja, no renovó (pase lo
+// que pase con la fecha); si sigue Activo/Renovado, cuenta como renovado solo
+// si su ciclo ya debería haber terminado (si no, sigue en curso y no se
+// evalúa todavía — ni a favor ni en contra).
+export function tasaRenovacion(doc, hoy = hoyDias()) {
+  let renovaron = 0;
+  const noRenovaronLista = [];
+  for (const c of doc.clientes || []) {
+    const ciclos = Array.isArray(c.historialCiclos) ? c.historialCiclos : [];
+    if (ciclos.length === 0) continue;
+    ciclos.forEach((h, i) => {
+      if (i < ciclos.length - 1) {
+        renovaron++;
+        return;
+      }
+      if (c.estado === "Finalizado" || c.estado === "Baja") {
+        noRenovaronLista.push({ clienteId: c.id, clienteNombre: c.nombre, estado: c.estado, finCiclo: h.fecha });
+        return;
+      }
+      const inicio = isoADias(h.fecha);
+      const semanas = Number(h.semanasTotal) || 0;
+      if (inicio == null || semanas <= 0) return; // datos incompletos: no se evalúa
+      if (inicio + semanas * 7 <= hoy) renovaron++; // ya tocaba y sigue activo -> cuenta como renovado
+      // si aún no ha terminado, el ciclo sigue en curso: no se evalúa todavía
+    });
+  }
+  const noRenovaron = noRenovaronLista.length;
+  const total = renovaron + noRenovaron;
+  return {
+    renovaron,
+    noRenovaron,
+    total,
+    tasa: total > 0 ? Math.round((renovaron / total) * 1000) / 10 : null,
+    noRenovaronLista: noRenovaronLista.sort((a, b) => String(b.finCiclo).localeCompare(String(a.finCiclo))),
+  };
+}
+
+// ── LTV (valor de vida del cliente) ───────────────
+// Lo que ha facturado cada cliente a lo largo de TODA su relación (todos sus
+// ciclos: alta + cada renovación), de siempre — no solo el ciclo actual.
+export function ltvPorCliente(doc) {
+  const mapa = new Map();
+  for (const v of ventas(doc)) {
+    mapa.set(v.clienteId, (mapa.get(v.clienteId) || 0) + v.importe);
+  }
+  return mapa;
+}
+
+export function ltvCliente(doc, clienteId) {
+  return ltvPorCliente(doc).get(clienteId) || 0;
+}
+
+export function ltvMedio(doc) {
+  const valores = [...ltvPorCliente(doc).values()];
+  if (valores.length === 0) return 0;
+  return Math.round(valores.reduce((s, x) => s + x, 0) / valores.length);
+}
