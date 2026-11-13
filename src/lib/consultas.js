@@ -25,7 +25,7 @@ export function llamadas(doc, hoy = hoyDias()) {
     const d = calcularCliente(c, hoy);
 
     // Renovación
-    if (!c.llamadaRenovacion?.hecha) {
+    if (!c.llamadaRenovacion?.hecha && !d.renovacionAnticipada) {
       const falta = d.semanaRenovacion - d.semanaPrograma;
       const fila = { cliente: c, d, tipo: "renovacion", semana: d.semanaRenovacion, ambito: "local" };
       if (falta <= 0) pendientes.push(fila);
@@ -135,7 +135,7 @@ export function panelInicio(doc, hoy = hoyDias()) {
   // Renovaciones previstas del mes = clientes activos cuyo ciclo termina este mes
   const renovacionesMes = activos
     .map((c) => ({ cliente: c, d: calcularCliente(c, hoy) }))
-    .filter(({ d }) => d.finDias != null && d.finDias >= primerDia && d.finDias <= ultimoDia)
+    .filter(({ d }) => !d.renovacionAnticipada && d.finDias != null && d.finDias >= primerDia && d.finDias <= ultimoDia)
     .sort((a, b) => a.d.finDias - b.d.finDias);
 
   const pagosPendientes = cobros

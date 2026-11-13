@@ -201,9 +201,16 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
           </span>
           <Semaforo semaforo={previa.semaforo} diasRestantes={previa.diasRestantes} />
         </div>
-        <div className="pista" style={{ marginTop: 4 }}>
-          Inicio {fFecha(cliente.fechaInicio)} · fin previsto {fFecha(previa.finDias != null ? isoDe(previa.finDias) : null)}
-        </div>
+        {previa.renovacionAnticipada ? (
+          <div className="pista" style={{ marginTop: 4 }}>
+            Ciclo actual hasta {fFecha(previa.finDias != null ? isoDe(previa.finDias) : null)} · renovación anticipada ya
+            registrada: el nuevo ciclo ({cliente.modalidad}) empieza el {fFecha(previa.proximoInicio)}
+          </div>
+        ) : (
+          <div className="pista" style={{ marginTop: 4 }}>
+            Inicio {fFecha(cliente.fechaInicio)} · fin previsto {fFecha(previa.finDias != null ? isoDe(previa.finDias) : null)}
+          </div>
+        )}
       </div>
 
       {/* Datos del ciclo (borrador) */}

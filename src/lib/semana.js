@@ -31,7 +31,7 @@ export function agendaSemanal(doc, hoy = hoyDias()) {
     const d = calcularCliente(c, hoy);
 
     // Renovación
-    if (!c.llamadaRenovacion?.hecha) {
+    if (!c.llamadaRenovacion?.hecha && !d.renovacionAnticipada) {
       const falta = d.semanaRenovacion - d.semanaPrograma;
       if (falta <= 0) {
         llamadasHacer.push({ clave: `lr-${c.id}`, tipo: "renovacion", cliente: c, d, semana: d.semanaRenovacion, ambito: "local" });
@@ -62,7 +62,7 @@ export function agendaSemanal(doc, hoy = hoyDias()) {
     }
 
     // Preparar renovación: ciclo activo que acaba en ≤ 4 semanas
-    if (d.diasRestantes != null && d.diasRestantes > 0 && d.diasRestantes <= 28) {
+    if (!d.renovacionAnticipada && d.diasRestantes != null && d.diasRestantes > 0 && d.diasRestantes <= 28) {
       const clave = `renprep-${c.id}-${c.numRenovaciones || 0}`;
       if (!hecha(doc, clave))
         renovaciones.push({ clave, cliente: c, d, diasRestantes: d.diasRestantes });

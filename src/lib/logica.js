@@ -52,11 +52,46 @@ export function carrerasOrdenadas(cliente, hoy = hoyDias()) {
     .sort((a, b) => a._dias - b._dias);
 }
 
+// Ciclo que está vigente HOY para calcular semanas, llamadas y semáforo.
+// Normalmente es el registrado en el cliente. Excepción: renovación anticipada
+// — se registró una renovación cuyo ciclo nuevo todavía no ha empezado
+// (fechaInicio futura) mientras el ciclo anterior sigue en curso. Hasta que
+// llegue esa fecha el cliente sigue en su ciclo anterior (que se recupera de
+// historialCiclos); el día que arranca el nuevo, pasa solo a él.
+function cicloVigente(cliente, hoy) {
+  const base = {
+    fechaInicio: cliente?.fechaInicio,
+    modalidad: cliente?.modalidad,
+    st: Number(cliente?.semanasTotal) || semanasDeModalidad(cliente?.modalidad),
+    sp: Number(cliente?.semanasPrevias) || 0,
+    anticipada: false,
+    proximoInicio: null,
+  };
+  const hist = cliente?.historialCiclos;
+  if (!Array.isArray(hist) || hist.length < 2) return base;
+  const nuevoInicio = isoADias(cliente.fechaInicio);
+  if (nuevoInicio == null || nuevoInicio <= hoy) return base;
+  const prev = hist[hist.length - 2];
+  const prevInicio = isoADias(prev?.fecha);
+  if (prevInicio == null || prevInicio > hoy) return base;
+  const prevSt = Number(prev.semanasTotal) || semanasDeModalidad(prev.modalidad);
+  if (hoy >= prevInicio + prevSt * 7) return base; // el anterior ya terminó: no hay solape
+  return {
+    fechaInicio: prev.fecha,
+    modalidad: prev.modalidad,
+    st: prevSt,
+    sp: Math.max(0, base.sp - prevSt),
+    anticipada: true,
+    proximoInicio: cliente.fechaInicio,
+  };
+}
+
 // ── Cálculo principal de un cliente ──────────────
 export function calcularCliente(cliente, hoy = hoyDias()) {
-  const fiDias = isoADias(cliente?.fechaInicio);
-  const st = Number(cliente?.semanasTotal) || semanasDeModalidad(cliente?.modalidad);
-  const sp = Number(cliente?.semanasPrevias) || 0;
+  const ciclo = cicloVigente(cliente, hoy);
+  const fiDias = isoADias(ciclo.fechaInicio);
+  const st = ciclo.st;
+  const sp = ciclo.sp;
 
   const totalDias = st * 7;
   const finDias = fiDias == null ? null : fiDias + totalDias;
@@ -68,11 +103,12 @@ export function calcularCliente(cliente, hoy = hoyDias()) {
   const semanaGlobal = sp + semanaPrograma;
   const semaforo = diasRestantes == null ? "⚫" : semaforoPorDias(diasRestantes);
 
-  const semanaRenovacion = semanaDeRenovacion(cliente?.modalidad);
-  const semanasOptimizacion = semanasDeOptimizacion(cliente?.modalidad, sp, st);
+  const semanaRenovacion = semanaDeRenovacion(ciclo.modalidad);
+  const semanasOptimizacion = semanasDeOptimizacion(ciclo.modalidad, sp, st);
 
-  const esRenovacionAhora = semanaPrograma === semanaRenovacion;
-  const esRenovacionPronto = semanaPrograma === semanaRenovacion - 1;
+  // En renovación anticipada la renovación ya está hecha: no toca llamada de renovar.
+  const esRenovacionAhora = !ciclo.anticipada && semanaPrograma === semanaRenovacion;
+  const esRenovacionPronto = !ciclo.anticipada && semanaPrograma === semanaRenovacion - 1;
   const esOptimizacionAhora = semanasOptimizacion.includes(semanaGlobal);
   const proximaOptimizacion = semanasOptimizacion.find((w) => w > semanaGlobal) || null;
   const esMensual = semanaPrograma % 4 === 0;
@@ -94,6 +130,8 @@ export function calcularCliente(cliente, hoy = hoyDias()) {
     semanasOptimizacion,
     esRenovacionAhora,
     esRenovacionPronto,
+    renovacionAnticipada: ciclo.anticipada,
+    proximoInicio: ciclo.proximoInicio,
     esOptimizacionAhora,
     proximaOptimizacion,
     esMensual,
