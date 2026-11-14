@@ -27,6 +27,7 @@ function ClienteCard({ c, d, onClick }) {
       <div className="cc-sub">
         {c.modalidad}
         {c.numRenovaciones ? ` · ${c.numRenovaciones}ª renovación` : ""}
+        {c.prueba?.estado === "en_curso" ? " · En prueba" : ""}
       </div>
       <div className="cc-progreso">
         <Progreso pct={d.pct} semaforo={d.semaforo} />

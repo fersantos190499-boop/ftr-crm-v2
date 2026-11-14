@@ -92,6 +92,13 @@ export function agendaSemanal(doc, hoy = hoyDias()) {
     .filter((x) => x.dias != null && x.dias <= finSem - hoy)
     .sort((a, b) => a.dias - b.dias);
 
+  // Pruebas de 1 mes cuya decisión cae esta semana o ya pasó sin resolver.
+  const pruebas = (doc.clientes || [])
+    .filter((c) => c.prueba?.estado === "en_curso")
+    .map((c) => ({ cliente: c, dias: c.prueba.fechaDecision ? isoADiasSeguro(c.prueba.fechaDecision) - hoy : null }))
+    .filter((x) => x.dias != null && x.dias <= finSem - hoy)
+    .sort((a, b) => a.dias - b.dias);
+
   const orden = (a, b) => (a.tipo === b.tipo ? a.semana - b.semana : a.tipo === "renovacion" ? -1 : 1);
   llamadasHacer.sort(orden);
   llamadasAgendar.sort(orden);
@@ -104,9 +111,10 @@ export function agendaSemanal(doc, hoy = hoyDias()) {
     revisiones.length +
     tablasCarrera.length +
     cobrosVencen.length +
-    renovaciones.length;
+    renovaciones.length +
+    pruebas.length;
 
-  return { llamadasHacer, llamadasAgendar, revisiones, tablasCarrera, cobrosVencen, renovaciones, total };
+  return { llamadasHacer, llamadasAgendar, revisiones, tablasCarrera, cobrosVencen, renovaciones, pruebas, total };
 }
 
 function isoADiasSeguro(iso) {

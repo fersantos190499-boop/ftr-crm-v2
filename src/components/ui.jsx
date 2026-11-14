@@ -60,16 +60,21 @@ export function Semaforo({ semaforo, diasRestantes }) {
   );
 }
 
-// Etiqueta de estado de un cobro: Cobrado (verde) / Pendiente (ámbar).
-export function EtiquetaPago({ estado }) {
+// Etiqueta de estado de un cobro: Cobrado (verde) / Pendiente (ámbar) /
+// Vencido (rojo, si es pendiente y su fecha ya pasó).
+export function EtiquetaPago({ estado, diasRetraso = 0 }) {
   const cobrado = estado === "Cobrado";
+  const vencido = !cobrado && diasRetraso > 0;
+  const estilo = cobrado
+    ? { background: "#e9f9ee", color: "#15803d" }
+    : vencido
+      ? { background: "#fdecee", color: "#d8253a" }
+      : { background: "#fdf4e3", color: "#b45309" };
+  const punto = cobrado ? "#22c55e" : vencido ? "#d8253a" : "#f59e0b";
   return (
-    <span
-      className="pill"
-      style={cobrado ? { background: "#e9f9ee", color: "#15803d" } : { background: "#fdf4e3", color: "#b45309" }}
-    >
-      <span className="pill-punto" style={{ background: cobrado ? "#22c55e" : "#f59e0b" }} />
-      {estado}
+    <span className="pill" style={estilo}>
+      <span className="pill-punto" style={{ background: punto }} />
+      {vencido ? `Vencido · ${diasRetraso} d` : estado}
     </span>
   );
 }

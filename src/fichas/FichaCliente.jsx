@@ -11,10 +11,12 @@ import { ESTADOS, COLOR_ESTADO } from "../lib/estado.js";
 import { LISTA_MODALIDADES, semanasDeModalidad, calcularCliente } from "../lib/logica.js";
 import { cobrosDeCliente, METODOS_PAGO, ESTADOS_PAGO, marcarLlamadaRenovacion, marcarLlamadaOptimizacion, registrarContacto } from "../lib/clientes.js";
 import { ltvCliente } from "../lib/consultas.js";
-import { fFecha } from "../lib/fechas.js";
+import { fFecha, isoADias, hoyDias } from "../lib/fechas.js";
 import CobroForm from "../forms/CobroForm.jsx";
 import CarreraForm from "../forms/CarreraForm.jsx";
 import RenovacionForm from "../forms/RenovacionForm.jsx";
+import PruebaForm from "../forms/PruebaForm.jsx";
+import { marcarPrueba } from "../lib/prueba.js";
 
 const CAMPOS_BORRADOR = [
   "modalidad",
@@ -67,6 +69,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
   const [formCobro, setFormCobro] = useState(null); // { cobro? }  o null
   const [formCarrera, setFormCarrera] = useState(null);
   const [formRenovacion, setFormRenovacion] = useState(false);
+  const [formPrueba, setFormPrueba] = useState(false);
   const [notaAbierta, setNotaAbierta] = useState(false);
   const [textoNota, setTextoNota] = useState("");
 
@@ -167,6 +170,10 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
 
   const carreras = (cliente.carreras || []).slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
   const ltv = ltvCliente(doc, cliente.id);
+  // Solo se ofrece marcar "prueba" a altas recientes que aún no han renovado.
+  const inicioDias = isoADias(cliente.fechaInicio);
+  const puedeSerPrueba =
+    cliente.estado === "Activo" && !cliente.numRenovaciones && inicioDias != null && hoyDias() - inicioDias <= 45;
 
   return (
     <Modal
@@ -212,6 +219,40 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
           </div>
         )}
       </div>
+
+      {/* Mes de prueba */}
+      {(cliente.prueba || puedeSerPrueba) && (
+        <div className="ficha-seccion">
+          <div className="ficha-titulo">Mes de prueba</div>
+          {!cliente.prueba && (
+            <div className="fila-llamada">
+              <span>Entró con 1 mes de prueba y tiene que decidir si sigue.</span>
+              <Boton onClick={() => actualizar((d) => marcarPrueba(d, cliente.id, true))}>Marcar como prueba</Boton>
+            </div>
+          )}
+          {cliente.prueba?.estado === "en_curso" && (
+            <div className="fila-llamada">
+              <span>
+                Decide el <strong>{fFecha(cliente.prueba.fechaDecision)}</strong> · pagó {cliente.prueba.importePrueba} €
+              </span>
+              <span style={{ display: "flex", gap: 6 }}>
+                <Boton variante="primario" onClick={() => setFormPrueba(true)}>
+                  Registrar decisión
+                </Boton>
+                <Boton onClick={() => actualizar((d) => marcarPrueba(d, cliente.id, false))}>Quitar marca</Boton>
+              </span>
+            </div>
+          )}
+          {cliente.prueba?.estado === "convertida" && (
+            <div className="pista">
+              Prueba convertida: siguió hasta {cliente.prueba.opcion} ({fFecha(cliente.prueba.resueltaEl)}).
+            </div>
+          )}
+          {cliente.prueba?.estado === "no_convertida" && (
+            <div className="pista">Prueba no convertida: no siguió ({fFecha(cliente.prueba.resueltaEl)}).</div>
+          )}
+        </div>
+      )}
 
       {/* Datos del ciclo (borrador) */}
       <div className="ficha-seccion">
@@ -432,7 +473,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
             {cliente.historialCiclos.map((h, i) => (
               <li key={i}>
                 <span>
-                  {h.motivo === "alta" ? "Alta" : "Renovación"} — {fFecha(h.fecha)}
+                  {h.ampliacion ? "Ampliación de la prueba" : h.motivo === "alta" ? "Alta" : "Renovación"} — {fFecha(h.fecha)}
                 </span>
                 <span className="pista">
                   {h.modalidad} · {h.importe} €
@@ -454,6 +495,7 @@ export default function FichaCliente({ cliente, doc, actualizar, onCerrar }) {
         </div>
       </div>
 
+      {formPrueba && <PruebaForm cliente={cliente} actualizar={actualizar} onCerrar={() => setFormPrueba(false)} />}
       {formRenovacion && (
         <RenovacionForm cliente={cliente} actualizar={actualizar} onCerrar={() => setFormRenovacion(false)} />
       )}

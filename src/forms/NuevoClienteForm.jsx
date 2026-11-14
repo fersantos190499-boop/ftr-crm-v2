@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Modal, Campo, Selector, Interruptor, Boton, Aviso } from "../components/ui.jsx";
 import { LISTA_MODALIDADES } from "../lib/logica.js";
 import { nuevoCliente, cobrosParaCiclo, METODOS_PAGO } from "../lib/clientes.js";
+import { conPrueba } from "../lib/prueba.js";
 
 const hoyIso = () => new Date().toISOString().slice(0, 10);
 
@@ -21,6 +22,7 @@ export default function NuevoClienteForm({ onCerrar, actualizar }) {
   const [primeraCobrada, setPrimeraCobrada] = useState(true);
   const [objetivoCorto, setObjetivoCorto] = useState("");
   const [objetivoLargo, setObjetivoLargo] = useState("");
+  const [prueba, setPrueba] = useState(false);
   const [error, setError] = useState("");
 
   const total = parseFloat(importe) || 0;
@@ -33,7 +35,7 @@ export default function NuevoClienteForm({ onCerrar, actualizar }) {
     if (!fechaPago) return setError("La fecha de pago es obligatoria.");
     if (!(total > 0)) return setError("El importe debe ser mayor que 0.");
 
-    const cliente = nuevoCliente({
+    const base = nuevoCliente({
       nombre,
       modalidad,
       fechaInicio,
@@ -44,6 +46,7 @@ export default function NuevoClienteForm({ onCerrar, actualizar }) {
       objetivoCorto,
       objetivoLargo,
     });
+    const cliente = prueba ? conPrueba(base) : base;
 
     const cobros = cobrosParaCiclo({
       clienteId: cliente.id,
@@ -96,6 +99,16 @@ export default function NuevoClienteForm({ onCerrar, actualizar }) {
           onChange={(v) => setPrimeraCobrada(v === "Cobrado")}
           opciones={["Cobrado", "Pendiente"]}
         />
+
+        <div style={{ gridColumn: "1 / -1" }}>
+          <Interruptor label="Mes de prueba (decide al terminar el mes)" checked={prueba} onChange={setPrueba} />
+        </div>
+        {prueba && (
+          <div className="pista" style={{ gridColumn: "1 / -1", marginTop: -4 }}>
+            Pon el importe de la mensualidad que paga ahora. A las 4 semanas te avisaré en Semana para registrar si
+            se va o sigue hasta 3 o 6 meses pagando el resto.
+          </div>
+        )}
 
         <div style={{ gridColumn: "1 / -1" }}>
           <Interruptor label="Pago fraccionado en varias cuotas" checked={fraccionado} onChange={setFraccionado} />

@@ -6,6 +6,7 @@ import { fMesAnyo, fFecha } from "../lib/fechas.js";
 import { COLOR_SEMAFORO, urgenciaPorDias } from "../lib/estado.js";
 import Icono from "../components/Icono.jsx";
 import GraficaRetencion from "../components/GraficaRetencion.jsx";
+import { resumenPruebas } from "../lib/prueba.js";
 
 function Kpi({ icono, etiqueta, valor, sub, tono }) {
   return (
@@ -52,6 +53,7 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
   const renov = tasaRenovacion(doc);
   const serieRenov = serieTasaRenovacion(doc);
   const ltv = ltvMedio(doc);
+  const pruebas = resumenPruebas(doc);
 
   if (doc.clientes.length === 0) {
     return (
@@ -108,6 +110,19 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
           valor={`${ltv} €`}
           sub="facturado de media por cliente, de siempre"
         />
+        {pruebas.hay && (
+          <Kpi
+            icono="ok"
+            tono="verde"
+            etiqueta="Conversión de pruebas"
+            valor={pruebas.tasa != null ? `${pruebas.tasa}%` : "—"}
+            sub={
+              pruebas.resueltas > 0
+                ? `${pruebas.convertidas} de ${pruebas.resueltas} siguen · ${pruebas.enCurso} en curso`
+                : `${pruebas.enCurso} en curso, ninguna decidida aún`
+            }
+          />
+        )}
       </div>
 
       {/* Alertas */}
@@ -123,30 +138,41 @@ export default function InicioTab({ doc, irATab, abrirFicha }) {
           />
           <Alerta
             icono="euro"
-            texto="Pagos pendientes"
-            num={p.pagosPendientes.length}
-            extra={p.totalPendiente > 0 ? `· ${p.totalPendiente} €` : ""}
-            tono={p.pagosPendientes.length > 0 ? "grave" : ""}
+            texto="Cobros vencidos"
+            num={p.cobrosVencidos.length}
+            extra={p.totalVencido > 0 ? `· ${p.totalVencido} €` : ""}
+            tono={p.cobrosVencidos.length > 0 ? "grave" : ""}
+            onClick={() => irATab("cobros")}
+          />
+          <Alerta
+            icono="reloj"
+            texto="Próximos cobros"
+            num={p.proximosCobros.length}
+            extra={p.totalProximos > 0 ? `· ${p.totalProximos} €` : ""}
             onClick={() => irATab("cobros")}
           />
         </div>
 
-        {p.pagosPendientes.length > 0 && (
+        {p.cobrosVencidos.length > 0 && (
           <div className="lista-simple" style={{ marginTop: 10 }}>
-            {p.pagosPendientes.slice(0, 5).map((co) => (
-              <div className="fila-llamada" key={co.id}>
-                <button className="enlace" onClick={() => abrirFicha(co.clienteId)}>
-                  {co.clienteNombre}
-                  <span className="pista"> · {co.concepto}</span>
-                </button>
-                <span className="pista">
-                  {co.importe} € · {fFecha(co.fechaPago)}
-                </span>
-              </div>
-            ))}
-            {p.pagosPendientes.length > 5 && (
-              <div className="pista">y {p.pagosPendientes.length - 5} más…</div>
-            )}
+            {p.cobrosVencidos.slice(0, 6).map((co) => {
+              const grave = co.diasRetraso > 7;
+              return (
+                <div className="fila-llamada" key={co.id}>
+                  <button className="enlace" onClick={() => abrirFicha(co.clienteId)}>
+                    {co.clienteNombre}
+                    <span className="pista"> · {co.concepto} · {co.importe} €</span>
+                  </button>
+                  <span
+                    className="pill pill-fuerte"
+                    style={grave ? { background: "var(--red-bg)", color: "var(--red)" } : { background: "var(--amber-bg)", color: "var(--amber)" }}
+                  >
+                    {co.diasRetraso} d de retraso
+                  </span>
+                </div>
+              );
+            })}
+            {p.cobrosVencidos.length > 6 && <div className="pista">y {p.cobrosVencidos.length - 6} más vencidos…</div>}
           </div>
         )}
       </section>

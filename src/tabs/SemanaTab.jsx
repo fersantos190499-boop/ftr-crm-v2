@@ -164,6 +164,26 @@ export default function SemanaTab({ doc, actualizar, abrirFicha }) {
         ))}
       </Seccion>
 
+      <Seccion icono="revision" titulo="Pruebas de 1 mes · toca decidir" n={a.pruebas.length}>
+        {a.pruebas.map(({ cliente, dias }) => (
+          <FilaSimple
+            key={cliente.id}
+            tono={dias < 0 ? "sem-vencido" : ""}
+            texto={cliente.nombre}
+            sub={
+              dias < 0
+                ? `decidía el ${fFecha(cliente.prueba.fechaDecision)} (hace ${-dias} d)`
+                : `decide el ${fFecha(cliente.prueba.fechaDecision)}`
+            }
+            accion={
+              <Boton variante="primario" onClick={() => abrirFicha(cliente.id)}>
+                Decidir
+              </Boton>
+            }
+          />
+        ))}
+      </Seccion>
+
       <Seccion icono="euro" titulo="Cobros que vencen" n={a.cobrosVencen.length}>
         {a.cobrosVencen.map(({ cobro, cliente, dias }) => (
           <FilaSimple

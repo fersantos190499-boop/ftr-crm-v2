@@ -1,7 +1,7 @@
 // ─── PESTAÑA COBROS ───────────────────────────────
 import { useMemo, useState } from "react";
 import { cobrosPorMes, resumenPeriodo, serieComparativa } from "../lib/consultas.js";
-import { fFecha, fMesAnyo, claveMes, hoyDias, diasAIso, rangoPeriodo, PERIODOS } from "../lib/fechas.js";
+import { fFecha, fMesAnyo, claveMes, hoyDias, isoADias, diasAIso, rangoPeriodo, PERIODOS } from "../lib/fechas.js";
 import { Boton, EtiquetaMetodo, EtiquetaPago } from "../components/ui.jsx";
 import Icono from "../components/Icono.jsx";
 import { METODOS_PAGO } from "../lib/clientes.js";
@@ -66,6 +66,12 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
   const totalFiltrado = suma(filtrados);
   const pendientes = conNombre.filter((c) => c.estado !== "Cobrado");
   const totalPendiente = suma(pendientes);
+  const hoy = hoyDias();
+  const retraso = (co) => {
+    const d = isoADias(co.fechaPago);
+    return co.estado !== "Cobrado" && d != null ? Math.max(0, hoy - d) : 0;
+  };
+  const vencidos = pendientes.filter((c) => retraso(c) > 0);
   const hayFiltro = busqueda || mes !== "todos" || metodo !== "todos" || estado !== "todos";
 
   const borrar = (co) => {
@@ -141,7 +147,7 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
         <Stat
           etiqueta="Por cobrar"
           valor={`${totalPendiente} €`}
-          sub={`${pendientes.length} cuota${pendientes.length === 1 ? "" : "s"} pendiente${pendientes.length === 1 ? "" : "s"}`}
+          sub={`${pendientes.length} cuota${pendientes.length === 1 ? "" : "s"} pendiente${pendientes.length === 1 ? "" : "s"}${vencidos.length ? ` · ${vencidos.length} vencida${vencidos.length === 1 ? "" : "s"} (${suma(vencidos)} €)` : ""}`}
           tono="azul"
         />
       </div>
@@ -235,7 +241,7 @@ export default function CobrosTab({ doc, actualizar, abrirFicha }) {
                         {co.importe} €
                       </td>
                       <td>
-                        <EtiquetaPago estado={co.estado} />
+                        <EtiquetaPago estado={co.estado} diasRetraso={retraso(co)} />
                       </td>
                       <td style={{ whiteSpace: "nowrap" }}>
                         <button className="mini" onClick={() => setForm({ cobro: co })}><Icono nombre="editar" size={15} /></button>

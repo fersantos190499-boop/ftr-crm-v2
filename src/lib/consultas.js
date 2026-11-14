@@ -144,6 +144,14 @@ export function panelInicio(doc, hoy = hoyDias()) {
     .sort((a, b) => String(a.fechaPago).localeCompare(String(b.fechaPago)));
   const totalPendiente = sum(pagosPendientes);
 
+  // Vencido = pendiente cuya fecha de pago ya pasó. Lo demás son próximos cobros.
+  const conRetraso = pagosPendientes.map((co) => {
+    const dias = isoADias(co.fechaPago);
+    return { ...co, diasRetraso: dias == null ? 0 : hoy - dias };
+  });
+  const cobrosVencidos = conRetraso.filter((co) => co.diasRetraso > 0).sort((a, b) => b.diasRetraso - a.diasRetraso);
+  const proximosCobros = conRetraso.filter((co) => co.diasRetraso <= 0);
+
   const { pendientesRenov, pendientesOptim, revisionMensual } = llamadas(doc, hoy);
   const carrerasProximas = carreras(doc, hoy).proximas.filter((f) => f.diasRestantes <= 30);
 
@@ -157,6 +165,10 @@ export function panelInicio(doc, hoy = hoyDias()) {
     renovacionesMes,
     pagosPendientes,
     totalPendiente,
+    cobrosVencidos,
+    totalVencido: sum(cobrosVencidos),
+    proximosCobros,
+    totalProximos: sum(proximosCobros),
     pendientesRenov,
     pendientesOptim,
     revisionMensual,
@@ -328,7 +340,19 @@ export function serieComparativa(doc, hoy = hoyDias(), n = 8) {
 function eventosDeRenovacion(doc, hoy) {
   const eventos = [];
   for (const c of doc.clientes || []) {
-    const ciclos = Array.isArray(c.historialCiclos) ? c.historialCiclos : [];
+    // Un mes de prueba sin convertir (o aún sin decidir) no es una renovación
+    // fallida: tiene su propio KPI (resumenPruebas).
+    if (c.prueba && c.prueba.estado !== "convertida") continue;
+    // Una ampliación de prueba (entrada con `ampliacion`) no es una renovación:
+    // se funde con el ciclo al que amplía, que pasa a tener la duración total.
+    const ciclos = [];
+    for (const h of Array.isArray(c.historialCiclos) ? c.historialCiclos : []) {
+      if (h.ampliacion && ciclos.length > 0) {
+        ciclos[ciclos.length - 1] = { ...ciclos[ciclos.length - 1], semanasTotal: h.semanasTotal || ciclos[ciclos.length - 1].semanasTotal };
+      } else {
+        ciclos.push(h);
+      }
+    }
     if (ciclos.length === 0) continue;
     ciclos.forEach((h, i) => {
       if (i < ciclos.length - 1) {
