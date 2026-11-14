@@ -12,6 +12,7 @@ import ClientesTab from "./tabs/ClientesTab.jsx";
 import LlamadasTab from "./tabs/LlamadasTab.jsx";
 import CarrerasTab from "./tabs/CarrerasTab.jsx";
 import CobrosTab from "./tabs/CobrosTab.jsx";
+import ContenidoTab from "./tabs/ContenidoTab.jsx";
 import DatosTab from "./tabs/DatosTab.jsx";
 import FichaCliente from "./fichas/FichaCliente.jsx";
 import logo from "./assets/logo-blanco.png";
@@ -23,6 +24,7 @@ const TABS = [
   { id: "llamadas", label: "Llamadas" },
   { id: "carreras", label: "Carreras" },
   { id: "cobros", label: "Cobros" },
+  { id: "contenido", label: "Contenido" },
   { id: "datos", label: "Datos" },
 ];
 
@@ -120,6 +122,7 @@ function CRM({ onSalir }) {
         {tab === "llamadas" && <LlamadasTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
         {tab === "carreras" && <CarrerasTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
         {tab === "cobros" && <CobrosTab doc={data} actualizar={actualizar} abrirFicha={abrirFicha} />}
+        {tab === "contenido" && <ContenidoTab doc={data} actualizar={actualizar} />}
         {tab === "datos" && (
           <DatosTab doc={data} exportar={exportar} importar={importar} sincronizarAhora={sincronizarAhora} />
         )}
