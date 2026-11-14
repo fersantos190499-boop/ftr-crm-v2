@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   normalizaContenido, guardarItem, borrarItem, pasarIdeaAlCalendario, importarContenido, semanasDelMes, itemsPorDia, resumenContenido,
+  siguienteEstado, antiguasSinCerrar, semanaDe, sumarDias, itemPorDefecto, unirCalendarios, limpio, huecosSinPost, equilibrio, atrasadas, estaListo, OBJETIVOS,
 } from "../lib/contenido.js";
 
 const vacio = () => ({ clientes: [], cobros: [], contenido: normalizaContenido(undefined) });
@@ -134,5 +135,100 @@ describe("contenido: resumen", () => {
       ideasLibresFeed: 1,
       ideasLibresStories: 2,
     });
+  });
+});
+
+describe("contenido: proceso de producción", () => {
+  it("siguienteEstado recorre el proceso de cada tipo y termina en null", () => {
+    expect(siguienteEstado("posts", "Idear")).toBe("Guion");
+    expect(siguienteEstado("posts", "Editar")).toBe("Programar");
+    expect(siguienteEstado("posts", "Programar")).toBe("Publicado");
+    expect(siguienteEstado("posts", "Publicado")).toBeNull();
+    expect(siguienteEstado("stories", "Grabar")).toBe("Hecha");
+    expect(siguienteEstado("stories", "Hecha")).toBe("Publicado");
+    expect(siguienteEstado("stories", "Inventado")).toBeNull();
+  });
+
+  it("estaListo: publicado o story hecha", () => {
+    expect(estaListo({ estado: "Publicado" })).toBe(true);
+    expect(estaListo({ estado: "Hecha" })).toBe(true);
+    expect(estaListo({ estado: "Grabar" })).toBe(false);
+  });
+
+  it("atrasadas: pasadas y sin terminar, de la más antigua a la más reciente", () => {
+    const items = [
+      { id: 1, fecha: "2026-11-10", estado: "Guion" },
+      { id: 2, fecha: "2026-11-05", estado: "Idear" },
+      { id: 3, fecha: "2026-11-08", estado: "Publicado" },
+      { id: 4, fecha: "2026-11-14", estado: "Idear" }, // hoy: aún no está atrasada
+      { id: 5, fecha: "2026-11-20", estado: "Idear" },
+    ];
+    expect(atrasadas(items, "2026-11-14").map((x) => x.id)).toEqual([2, 1]);
+  });
+
+  it("lo de hace más de 14 días no es atrasado: se cuenta aparte como antiguo", () => {
+    const items = [
+      { id: 1, fecha: "2026-08-20", estado: "Grabar" },
+      { id: 2, fecha: "2026-10-31", estado: "Idear" }, // justo en el límite: aún cuenta como atrasada
+      { id: 3, fecha: "2026-10-30", estado: "Idear" },
+      { id: 4, fecha: "2026-08-21", estado: "Hecha" },
+    ];
+    expect(atrasadas(items, "2026-11-14").map((x) => x.id)).toEqual([2]);
+    expect(antiguasSinCerrar(items, "2026-11-14")).toBe(2);
+  });
+});
+
+describe("contenido: semanas y huecos", () => {
+  it("semanaDe devuelve lunes → domingo, también cruzando de mes", () => {
+    expect(semanaDe("2026-11-14")).toEqual(["2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14", "2026-11-15"]);
+    expect(semanaDe("2026-11-01")[0]).toBe("2026-10-26"); // domingo 1-nov → semana que empieza el 26-oct
+    expect(semanaDe("2026-11-02")[0]).toBe("2026-11-02"); // un lunes es el primer día
+  });
+
+  it("sumarDias cruza meses y años", () => {
+    expect(sumarDias("2026-12-30", 3)).toBe("2027-01-02");
+    expect(sumarDias("2026-11-14", -14)).toBe("2026-10-31");
+  });
+
+  it("huecosSinPost: días de los próximos N sin ningún post (las stories no cuentan)", () => {
+    const posts = [{ fecha: "2026-11-14" }, { fecha: "2026-11-16" }, { fecha: "2026-12-30" }];
+    expect(huecosSinPost(posts, "2026-11-14", 4)).toEqual(["2026-11-15", "2026-11-17"]);
+  });
+});
+
+describe("contenido: equilibrio", () => {
+  const posts = [
+    { fecha: "2026-11-01", objetivo: "Atraer" },
+    { fecha: "2026-11-05", objetivo: "Atraer" },
+    { fecha: "2026-11-09", objetivo: "Educar" },
+    { fecha: "2026-11-12", objetivo: "Convertir" },
+    { fecha: "2026-10-01", objetivo: "Conectar" }, // fuera de la ventana
+  ];
+  it("cuenta y calcula el % por categoría dentro del rango", () => {
+    const e = equilibrio(posts, "objetivo", OBJETIVOS, "2026-10-16", "2026-11-14");
+    expect(e.total).toBe(4);
+    expect(e.categorias).toEqual([
+      { nombre: "Atraer", n: 2, pct: 50 },
+      { nombre: "Educar", n: 1, pct: 25 },
+      { nombre: "Convertir", n: 1, pct: 25 },
+      { nombre: "Conectar", n: 0, pct: 0 },
+    ]);
+  });
+  it("sin piezas en el rango no divide por cero", () => {
+    expect(equilibrio([], "objetivo", OBJETIVOS, "2026-11-01", "2026-11-30").categorias.every((c) => c.pct === 0)).toBe(true);
+  });
+});
+
+describe("contenido: lista unificada", () => {
+  const doc = { contenido: { posts: [{ id: "p", fecha: "2026-11-02" }], stories: [{ id: "s", fecha: "2026-11-02" }], ideasFeed: [], ideasStories: [] } };
+  it("unirCalendarios marca el origen y respeta la capa elegida", () => {
+    expect(unirCalendarios(doc).map((x) => x._lista).sort()).toEqual(["posts", "stories"]);
+    expect(unirCalendarios(doc, "posts").map((x) => x.id)).toEqual(["p"]);
+    expect(unirCalendarios(doc, "stories").map((x) => x.id)).toEqual(["s"]);
+  });
+  it("limpio quita la marca interna y itemPorDefecto da valores válidos", () => {
+    expect(limpio({ id: "p", _lista: "posts" })).toEqual({ id: "p" });
+    expect(itemPorDefecto("posts", "2026-11-02")).toMatchObject({ fecha: "2026-11-02", objetivo: "Atraer", estado: "Idear" });
+    expect(itemPorDefecto("stories", "2026-11-02")).toMatchObject({ secuencia: "Valor + CTA", cta: "Ninguna", estado: "Idear" });
   });
 });

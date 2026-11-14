@@ -161,3 +161,88 @@ export function resumenContenido(doc, hoyIso) {
     ideasLibresStories: c.ideasStories.filter((i) => !i.usada).length,
   };
 }
+
+// ═══ Planificación semanal, tablero y avisos ═════════
+
+// "Listo" = ya no hay nada que producir: publicado, o story ya grabada.
+export const estaListo = (it) => it.estado === "Publicado" || it.estado === "Hecha";
+
+export const estadosDe = (lista) => (lista === "stories" ? ESTADOS_STORY : ESTADOS_POST);
+
+// Siguiente paso del proceso de producción (null si ya es el último).
+export function siguienteEstado(lista, estado) {
+  const e = estadosDe(lista);
+  const i = e.indexOf(estado);
+  return i >= 0 && i < e.length - 1 ? e[i + 1] : null;
+}
+
+export function sumarDias(iso, n) {
+  return diasAIso(isoADias(iso) + n);
+}
+
+// Los 7 días (lunes → domingo) de la semana que contiene `iso`.
+export function semanaDe(iso) {
+  const d = isoADias(iso);
+  const lunes = d - ((d + 3) % 7);
+  return Array.from({ length: 7 }, (_, i) => diasAIso(lunes + i));
+}
+
+// Pieza nueva con valores por defecto, para altas rápidas y para el formulario.
+export function itemPorDefecto(lista, fecha) {
+  return lista === "stories"
+    ? { fecha, secuencia: "Valor + CTA", tema: "", cta: "Ninguna", estado: "Idear", nota: "" }
+    : { fecha, objetivo: "Atraer", formato: "Reel", estado: "Idear", tema: "", cta: "", nota: "" };
+}
+
+// Une posts y stories en una sola lista, marcando de cuál viene cada pieza.
+export function unirCalendarios(doc, capas = "ambas") {
+  const c = contenidoDe(doc);
+  return [
+    ...(capas !== "stories" ? c.posts.map((x) => ({ ...x, _lista: "posts" })) : []),
+    ...(capas !== "posts" ? c.stories.map((x) => ({ ...x, _lista: "stories" })) : []),
+  ];
+}
+
+// Quita la marca interna antes de guardar o de abrir el formulario.
+export function limpio(it) {
+  const { _lista, ...resto } = it; // eslint-disable-line no-unused-vars
+  return resto;
+}
+
+export const VENTANA_HUECOS = 14;
+
+// Días de [hoy, hoy+dias) sin ningún post planificado (las stories no cuentan).
+export function huecosSinPost(posts, hoyIso, dias = VENTANA_HUECOS) {
+  const con = new Set(posts.filter((p) => p.fecha).map((p) => p.fecha));
+  return Array.from({ length: dias }, (_, i) => sumarDias(hoyIso, i)).filter((d) => !con.has(d));
+}
+
+// Reparto por categoría (objetivo o secuencia) entre dos fechas, ambas inclusive.
+export function equilibrio(items, clave, categorias, desdeIso, hastaIso) {
+  const enRango = items.filter((x) => x.fecha && x.fecha >= desdeIso && x.fecha <= hastaIso);
+  const total = enRango.length;
+  return {
+    total,
+    categorias: categorias.map((nombre) => {
+      const n = enRango.filter((x) => x[clave] === nombre).length;
+      return { nombre, n, pct: total ? Math.round((n / total) * 100) : 0 };
+    }),
+  };
+}
+
+export const VENTANA_ATRASADAS = 14;
+
+// Piezas de los últimos 14 días que siguen sin estar listas, de la más antigua a la
+// más reciente. Lo anterior a esa ventana se da por olvidado: no es una urgencia.
+export function atrasadas(items, hoyIso, dias = VENTANA_ATRASADAS) {
+  const desde = sumarDias(hoyIso, -dias);
+  return items
+    .filter((x) => x.fecha && x.fecha >= desde && x.fecha < hoyIso && !estaListo(x))
+    .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)));
+}
+
+// Cuántas piezas más antiguas que esa ventana quedaron sin cerrar (para limpiarlas en el tablero).
+export function antiguasSinCerrar(items, hoyIso, dias = VENTANA_ATRASADAS) {
+  const desde = sumarDias(hoyIso, -dias);
+  return items.filter((x) => x.fecha && x.fecha < desde && !estaListo(x)).length;
+}

@@ -1,184 +1,186 @@
 // ─── PESTAÑA CONTENIDO ────────────────────────────
-// Planificación de posts (feed) y stories con vista de calendario o lista, y
-// un banco de ideas para cada uno. Sustituye al Excel de contenido.
+// Tres espacios: Planificar (semana, mes o lista, con posts y stories juntos),
+// Tablero (qué está parado en cada paso de producción) e Ideas (los bancos de
+// feed y de stories). Sustituye al Excel de contenido.
 
 import { useMemo, useRef, useState } from "react";
 import { Boton, Aviso } from "../components/ui.jsx";
 import Icono from "../components/Icono.jsx";
 import CalendarioMes from "../components/CalendarioMes.jsx";
+import VistaSemana from "../components/VistaSemana.jsx";
+import PanelHoy from "../components/PanelHoy.jsx";
+import Equilibrio from "../components/Equilibrio.jsx";
+import Tablero from "../components/Tablero.jsx";
+import PiezaCard, { Nota } from "../components/PiezaCard.jsx";
 import ContenidoForm from "../forms/ContenidoForm.jsx";
 import { fFecha } from "../lib/fechas.js";
 import {
-  LISTAS, normalizaContenido, guardarItem, pasarIdeaAlCalendario, importarContenido, resumenContenido, colorDe, esPublicado,
-  OBJETIVOS, SECUENCIAS_IDEA, ESTADOS_POST, ESTADOS_STORY, SECUENCIAS,
+  LISTAS, normalizaContenido, guardarItem, pasarIdeaAlCalendario, importarContenido, resumenContenido, colorDe,
+  unirCalendarios, limpio, semanaDe, sumarDias, estaListo, OBJETIVOS, SECUENCIAS_IDEA, SECUENCIAS,
 } from "../lib/contenido.js";
 
 const hoyIso = () => new Date().toISOString().slice(0, 10);
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-function Pastilla({ lista, valor }) {
-  if (!valor) return null;
-  const [bg, fg] = colorDe(lista, valor);
-  return (
-    <span className="pill" style={{ background: bg, color: fg }}>
-      {valor}
-    </span>
-  );
-}
-
-function Nota({ texto }) {
-  if (!texto) return null;
-  if (/^https?:\/\//.test(texto.trim()))
-    return (
-      <a className="enlace" href={texto.trim()} target="_blank" rel="noreferrer">
-        Ver enlace
-      </a>
-    );
-  return <span className="pista">{texto}</span>;
-}
-
-// Fila de una pieza del calendario (la del día seleccionado y la de la lista).
-function FilaPieza({ lista, it, actualizar, onEditar }) {
-  const estados = lista === "posts" ? ESTADOS_POST : ESTADOS_STORY;
-  const clave = lista === "posts" ? "objetivo" : "secuencia";
-  const [, , acento] = colorDe(lista, it[clave]);
-  const cambiarEstado = (estado) => actualizar((d) => guardarItem(d, lista, { ...it, estado }));
-  return (
-    <div className={`cont-fila ${esPublicado(it) ? "pub" : ""}`} style={{ borderLeftColor: acento }}>
-      <div className="cont-fila-main">
-        <div className="cont-fila-top">
-          <strong>{it.tema || it[clave] || "Sin título"}</strong>
-        </div>
-        <div className="cont-fila-meta">
-          <span className="pista">{fFecha(it.fecha)}</span>
-          <Pastilla lista={lista} valor={it[clave]} />
-          {lista === "posts" && it.formato && <span className="pill pill-plano">{it.formato}</span>}
-          {it.cta && it.cta !== "Ninguna" && <span className="pill pill-plano">CTA: {it.cta}</span>}
-          <Nota texto={it.nota} />
-        </div>
-      </div>
-      <select className="campo-input cont-estado" value={it.estado} onChange={(e) => cambiarEstado(e.target.value)}>
-        {estados.map((e) => (
-          <option key={e}>{e}</option>
-        ))}
-      </select>
-      <button className="mini" onClick={onEditar} title="Editar">
-        <Icono nombre="editar" size={15} />
-      </button>
-    </div>
-  );
-}
-
-// ── Calendarios (posts / stories) ──────────────────
-function Calendarios({ doc, actualizar, lista }) {
+// ── Planificar ─────────────────────────────────────
+function Planificar({ doc, actualizar }) {
   const hoy = hoyIso();
-  const [vista, setVista] = useState("calendario");
+  const [capas, setCapas] = useState("ambas"); // ambas | posts | stories
+  const [vista, setVista] = useState("semana"); // semana | mes | lista
+  const [ref, setRef] = useState(hoy); // un día de la semana que se está viendo
   const [ym, setYm] = useState({ anio: Number(hoy.slice(0, 4)), mes: Number(hoy.slice(5, 7)) });
   const [sel, setSel] = useState(hoy);
-  const [form, setForm] = useState(null);
+  const [form, setForm] = useState(null); // { lista, item?, fecha? }
+  const [mostrarListas, setMostrarListas] = useState(true);
   const [filtro, setFiltro] = useState("pendientes");
   const [tipo, setTipo] = useState("todos");
 
-  const items = normalizaContenido(doc.contenido)[lista];
-  const clave = lista === "posts" ? "objetivo" : "secuencia";
-  const tipos = lista === "posts" ? OBJETIVOS : SECUENCIAS;
+  const contenido = normalizaContenido(doc.contenido);
+  const items = useMemo(() => unirCalendarios(doc, capas), [doc, capas]);
+  const visibles = mostrarListas ? items : items.filter((x) => !estaListo(x));
+  const semana = semanaDe(ref);
 
-  const mover = (delta) =>
+  const editar = (it) => setForm({ lista: it._lista, item: limpio(it) });
+  const nuevo = (fecha) => setForm({ lista: capas === "stories" ? "stories" : "posts", fecha });
+
+  const moverMes = (delta) =>
     setYm(({ anio, mes }) => {
       const t = anio * 12 + (mes - 1) + delta;
       return { anio: Math.floor(t / 12), mes: (t % 12) + 1 };
     });
   const irAHoy = () => {
-    setYm({ anio: Number(hoy.slice(0, 4)), mes: Number(hoy.slice(5, 7)) });
+    setRef(hoy);
     setSel(hoy);
+    setYm({ anio: Number(hoy.slice(0, 4)), mes: Number(hoy.slice(5, 7)) });
   };
 
-  const delDia = items.filter((x) => x.fecha === sel);
-  const lisa = useMemo(() => {
+  const lista = useMemo(() => {
     const f = items.filter(
       (x) =>
-        (tipo === "todos" || x[clave] === tipo) &&
-        (filtro === "todos" || (filtro === "publicados" ? esPublicado(x) : !esPublicado(x)))
+        (tipo === "todos" || x.objetivo === tipo || x.secuencia === tipo) &&
+        (filtro === "todos" || (filtro === "publicados" ? estaListo(x) : !estaListo(x)))
     );
     const asc = filtro !== "publicados";
     return f.slice().sort((a, b) => (asc ? 1 : -1) * String(a.fecha).localeCompare(String(b.fecha)));
-  }, [items, filtro, tipo, clave]);
+  }, [items, filtro, tipo]);
+
+  const delDiaSel = visibles.filter((x) => x.fecha === sel);
+  const tituloSemana = `${fFecha(semana[0]).slice(0, 5)} — ${fFecha(semana[6]).slice(0, 5)}`;
 
   return (
     <div>
       <div className="barra-superior">
         <div className="chips">
-          {[["calendario", "Calendario"], ["lista", "Lista"]].map(([id, t]) => (
+          {[["semana", "Semana"], ["mes", "Mes"], ["lista", "Lista"]].map(([id, t]) => (
             <button key={id} className={`chip ${vista === id ? "activo" : ""}`} onClick={() => setVista(id)}>
               {t}
             </button>
           ))}
         </div>
-        <Boton variante="primario" style={{ marginLeft: "auto" }} onClick={() => setForm({ fecha: vista === "calendario" ? sel : hoy })}>
-          + {lista === "posts" ? "Nuevo post" : "Nueva story"}
+        <div className="chips">
+          {[["ambas", "Posts y stories"], ["posts", "Solo posts"], ["stories", "Solo stories"]].map(([id, t]) => (
+            <button key={id} className={`chip ${capas === id ? "activo" : ""}`} onClick={() => setCapas(id)}>
+              {t}
+            </button>
+          ))}
+        </div>
+        <Boton variante="primario" style={{ marginLeft: "auto" }} onClick={() => nuevo(vista === "mes" ? sel : hoy)}>
+          + Nuevo
         </Boton>
       </div>
 
-      {vista === "calendario" ? (
+      {vista !== "lista" && (
+        <PanelHoy items={items} hoyIso={hoy} actualizar={actualizar} onEditar={editar} onNuevo={nuevo} />
+      )}
+
+      {vista === "semana" && (
         <>
           <div className="cal-nav">
-            <button className="mini" onClick={() => mover(-1)} aria-label="Mes anterior">‹</button>
-            <strong className="cal-titulo">{MESES[ym.mes - 1]} {ym.anio}</strong>
-            <button className="mini" onClick={() => mover(1)} aria-label="Mes siguiente">›</button>
-            <Boton style={{ marginLeft: "auto" }} onClick={irAHoy}>Hoy</Boton>
+            <button className="mini" onClick={() => setRef(sumarDias(ref, -7))} aria-label="Semana anterior">‹</button>
+            <strong className="cal-titulo">{tituloSemana}</strong>
+            <button className="mini" onClick={() => setRef(sumarDias(ref, 7))} aria-label="Semana siguiente">›</button>
+            <label className="cont-oculta" style={{ marginLeft: "auto" }}>
+              <input type="checkbox" checked={mostrarListas} onChange={(e) => setMostrarListas(e.target.checked)} /> Ver lo ya publicado
+            </label>
+            <Boton onClick={irAHoy}>Hoy</Boton>
           </div>
-          <CalendarioMes lista={lista} anio={ym.anio} mes={ym.mes} items={items} seleccionado={sel} hoyIso={hoy} onSeleccionar={setSel} />
+          <Equilibrio posts={contenido.posts} stories={contenido.stories} hoyIso={hoy} semana={semana} capas={capas} />
+          <VistaSemana
+            dias={semana}
+            items={visibles}
+            hoyIso={hoy}
+            capas={capas}
+            actualizar={actualizar}
+            onEditar={editar}
+            onFormulario={(lista, item) => setForm({ lista, item })}
+          />
+        </>
+      )}
 
+      {vista === "mes" && (
+        <>
+          <div className="cal-nav">
+            <button className="mini" onClick={() => moverMes(-1)} aria-label="Mes anterior">‹</button>
+            <strong className="cal-titulo">{MESES[ym.mes - 1]} {ym.anio}</strong>
+            <button className="mini" onClick={() => moverMes(1)} aria-label="Mes siguiente">›</button>
+            <label className="cont-oculta" style={{ marginLeft: "auto" }}>
+              <input type="checkbox" checked={mostrarListas} onChange={(e) => setMostrarListas(e.target.checked)} /> Ver lo ya publicado
+            </label>
+            <Boton onClick={irAHoy}>Hoy</Boton>
+          </div>
+          <CalendarioMes anio={ym.anio} mes={ym.mes} items={visibles} capas={capas} seleccionado={sel} hoyIso={hoy} onSeleccionar={setSel} />
           <section className="bloque" style={{ marginTop: 14 }}>
             <h3 className="bloque-titulo">
               {fFecha(sel)}
-              <Boton style={{ marginLeft: "auto" }} onClick={() => setForm({ fecha: sel })}>+ Añadir este día</Boton>
+              <Boton style={{ marginLeft: "auto" }} onClick={() => nuevo(sel)}>+ Añadir este día</Boton>
             </h3>
-            {delDia.length === 0 ? (
+            {delDiaSel.length === 0 ? (
               <div className="pista">Nada planificado este día.</div>
             ) : (
               <div className="cont-lista">
-                {delDia.map((it) => (
-                  <FilaPieza key={it.id} lista={lista} it={it} actualizar={actualizar} onEditar={() => setForm({ item: it })} />
+                {delDiaSel.map((it) => (
+                  <PiezaCard key={it.id} it={it} hoyIso={hoy} actualizar={actualizar} onEditar={() => editar(it)} />
                 ))}
               </div>
             )}
           </section>
         </>
-      ) : (
+      )}
+
+      {vista === "lista" && (
         <>
           <div className="tarjeta filtros-cobros">
             <div className="chips">
-              {[["pendientes", "Por hacer"], ["publicados", "Publicado"], ["todos", "Todos"]].map(([id, t]) => (
+              {[["pendientes", "Por hacer"], ["publicados", "Listo"], ["todos", "Todos"]].map(([id, t]) => (
                 <button key={id} className={`chip ${filtro === id ? "activo" : ""}`} onClick={() => setFiltro(id)}>
                   {t}
                 </button>
               ))}
             </div>
-            <select className="campo-input" style={{ maxWidth: 200 }} value={tipo} onChange={(e) => setTipo(e.target.value)}>
-              <option value="todos">{lista === "posts" ? "Todos los objetivos" : "Todas las secuencias"}</option>
-              {tipos.map((t) => (
+            <select className="campo-input" style={{ maxWidth: 210 }} value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <option value="todos">Todos los objetivos y secuencias</option>
+              {[...OBJETIVOS, ...SECUENCIAS.filter((s) => !OBJETIVOS.includes(s))].map((t) => (
                 <option key={t}>{t}</option>
               ))}
             </select>
-            <span className="pista" style={{ marginLeft: "auto" }}>{lisa.length} pieza{lisa.length === 1 ? "" : "s"}</span>
+            <span className="pista" style={{ marginLeft: "auto" }}>{lista.length} pieza{lista.length === 1 ? "" : "s"}</span>
           </div>
-          {lisa.length === 0 ? (
+          {lista.length === 0 ? (
             <div className="vacio">
               <Icono nombre="semana" size={42} className="ico-vacio" />
               <p>No hay nada con este filtro.</p>
             </div>
           ) : (
             <div className="cont-lista">
-              {lisa.map((it) => (
-                <FilaPieza key={it.id} lista={lista} it={it} actualizar={actualizar} onEditar={() => setForm({ item: it })} />
+              {lista.map((it) => (
+                <PiezaCard key={it._lista + it.id} it={it} hoyIso={hoy} mostrarFecha actualizar={actualizar} onEditar={() => editar(it)} />
               ))}
             </div>
           )}
         </>
       )}
 
-      {form && <ContenidoForm lista={lista} item={form.item} fecha={form.fecha} actualizar={actualizar} onCerrar={() => setForm(null)} />}
+      {form && <ContenidoForm lista={form.lista} item={form.item} fecha={form.fecha} actualizar={actualizar} onCerrar={() => setForm(null)} />}
     </div>
   );
 }
@@ -288,10 +290,12 @@ function Ideas({ doc, actualizar }) {
 }
 
 export default function ContenidoTab({ doc, actualizar }) {
-  const [seccion, setSeccion] = useState("posts");
+  const [seccion, setSeccion] = useState("planificar");
   const [aviso, setAviso] = useState(null);
+  const [formTablero, setFormTablero] = useState(null);
   const inputFichero = useRef(null);
-  const r = resumenContenido(doc, hoyIso());
+  const hoy = hoyIso();
+  const r = resumenContenido(doc, hoy);
   const c = normalizaContenido(doc.contenido);
   const vacio = LISTAS.every((k) => c[k].length === 0);
 
@@ -327,7 +331,7 @@ export default function ContenidoTab({ doc, actualizar }) {
 
       <div className="barra-superior">
         <div className="chips">
-          {[["posts", "Posts"], ["stories", "Stories"], ["ideas", "Banco de ideas"]].map(([id, t]) => (
+          {[["planificar", "Planificar"], ["tablero", "Tablero"], ["ideas", "Banco de ideas"]].map(([id, t]) => (
             <button key={id} className={`chip ${seccion === id ? "activo" : ""}`} onClick={() => setSeccion(id)}>
               {t}
             </button>
@@ -352,12 +356,15 @@ export default function ContenidoTab({ doc, actualizar }) {
         </div>
       )}
 
-      {seccion === "ideas" ? (
-        <Ideas doc={doc} actualizar={actualizar} />
-      ) : (
-        <Calendarios key={seccion} doc={doc} actualizar={actualizar} lista={seccion} />
+      {seccion === "planificar" && <Planificar doc={doc} actualizar={actualizar} />}
+      {seccion === "tablero" && (
+        <Tablero doc={doc} actualizar={actualizar} hoyIso={hoy} onEditar={(it) => setFormTablero({ lista: it._lista, item: limpio(it) })} />
+      )}
+      {seccion === "ideas" && <Ideas doc={doc} actualizar={actualizar} />}
+
+      {formTablero && (
+        <ContenidoForm lista={formTablero.lista} item={formTablero.item} actualizar={actualizar} onCerrar={() => setFormTablero(null)} />
       )}
     </div>
   );
 }
-

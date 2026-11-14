@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { Modal, Campo, Selector, Interruptor, TextArea, Boton, Aviso } from "../components/ui.jsx";
-import { guardarItem, borrarItem, OBJETIVOS, FORMATOS, FORMATOS_IDEA, ESTADOS_POST, CTA_POST, SECUENCIAS, SECUENCIAS_IDEA, ESTADOS_STORY, CTA_STORY } from "../lib/contenido.js";
+import { guardarItem, borrarItem, itemPorDefecto, OBJETIVOS, FORMATOS, FORMATOS_IDEA, ESTADOS_POST, CTA_POST, SECUENCIAS, SECUENCIAS_IDEA, ESTADOS_STORY, CTA_STORY } from "../lib/contenido.js";
 
 const hoyIso = () => new Date().toISOString().slice(0, 10);
 const sinValor = (txt) => [{ v: "", l: txt }];
@@ -15,9 +15,8 @@ function inicial(lista, item, fecha) {
   if (item) return { ...item };
   switch (lista) {
     case "posts":
-      return { fecha: fecha || hoyIso(), objetivo: "Atraer", formato: "Reel", estado: "Idear", tema: "", cta: "", nota: "" };
     case "stories":
-      return { fecha: fecha || hoyIso(), secuencia: "Valor + CTA", tema: "", cta: "Ninguna", estado: "Idear", nota: "" };
+      return itemPorDefecto(lista, fecha || hoyIso());
     case "ideasFeed":
       return { objetivo: fecha || "Atraer", formato: "Reel", tema: "", nota: "", usada: false };
     default:

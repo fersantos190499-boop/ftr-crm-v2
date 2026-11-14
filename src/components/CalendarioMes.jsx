@@ -1,22 +1,19 @@
 // ─── CALENDARIO MENSUAL ───────────────────────────
-// Rejilla lunes → domingo. En cada día, una pastilla por pieza de contenido,
-// con el color de su objetivo/secuencia y un ✓ si ya está publicada. En móvil
-// las pastillas se reducen a puntos de color (el detalle sale debajo, al
-// pulsar el día).
+// Vista de conjunto del mes: rejilla lunes → domingo con posts y stories. Cada
+// pieza es una pastilla con el color de su objetivo/secuencia (las stories
+// llevan una "S"), ✓ si está lista, y los días futuros sin ningún post llevan
+// un punto ámbar. En móvil las pastillas se reducen a puntos de color; el
+// detalle del día sale debajo, al pulsarlo.
 
-import { semanasDelMes, itemsPorDia, colorDe, esPublicado } from "../lib/contenido.js";
+import { semanasDelMes, itemsPorDia, colorDe, estaListo, sumarDias, VENTANA_HUECOS } from "../lib/contenido.js";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MAX_VISIBLES = 3;
 
-function etiqueta(lista, it) {
-  return it.tema || it.objetivo || it.secuencia || "Sin título";
-}
-
-export default function CalendarioMes({ lista, anio, mes, items, seleccionado, hoyIso, onSeleccionar }) {
+export default function CalendarioMes({ anio, mes, items, capas, seleccionado, hoyIso, onSeleccionar }) {
   const semanas = semanasDelMes(anio, mes);
   const porDia = itemsPorDia(items);
-  const clave = lista === "stories" ? "secuencia" : "objetivo";
+  const limiteHuecos = sumarDias(hoyIso, VENTANA_HUECOS - 1);
 
   return (
     <div className="cal-mes">
@@ -29,27 +26,35 @@ export default function CalendarioMes({ lista, anio, mes, items, seleccionado, h
         <div className="cal-semana" key={i}>
           {sem.map((c) => {
             const delDia = porDia.get(c.iso) || [];
+            const hueco =
+              capas !== "stories" && c.delMes && c.iso >= hoyIso && c.iso <= limiteHuecos && !delDia.some((x) => x._lista === "posts");
             return (
               <button
                 key={c.iso}
                 className={`cal-dia ${c.delMes ? "" : "fuera"} ${c.iso === hoyIso ? "hoy" : ""} ${c.iso === seleccionado ? "sel" : ""}`}
                 onClick={() => onSeleccionar(c.iso)}
               >
-                <span className="cal-num">{c.dia}</span>
+                <span className="cal-num">
+                  {c.dia}
+                  {hueco && <i className="cal-hueco" title="Sin post planificado" />}
+                </span>
                 <span className="cal-items">
                   {delDia.slice(0, MAX_VISIBLES).map((it) => {
-                    const [bg, fg, acento] = colorDe(lista, it[clave]);
+                    const esStory = it._lista === "stories";
+                    const [bg, fg, acento] = colorDe(it._lista, it[esStory ? "secuencia" : "objetivo"]);
+                    const titulo = it.tema || it.objetivo || it.secuencia || "Sin título";
                     return (
                       <span
                         key={it.id}
-                        className={`cal-pastilla ${esPublicado(it) ? "pub" : ""}`}
+                        className={`cal-pastilla ${estaListo(it) ? "pub" : ""} ${esStory ? "story" : ""}`}
                         style={{ background: bg, color: fg, borderLeftColor: acento }}
-                        title={`${etiqueta(lista, it)} · ${it.estado}`}
+                        title={`${esStory ? "Story" : "Post"} · ${titulo} · ${it.estado}`}
                       >
                         <i className="cal-punto" style={{ background: acento }} />
                         <span className="cal-txt">
-                          {esPublicado(it) ? "✓ " : ""}
-                          {etiqueta(lista, it)}
+                          {estaListo(it) ? "✓ " : ""}
+                          {esStory ? "S · " : ""}
+                          {titulo}
                         </span>
                       </span>
                     );
